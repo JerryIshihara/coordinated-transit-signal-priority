@@ -189,7 +189,7 @@ class Intersection:
 
             print("------- No.{} Bus Checked -------".format(self.total_bus))
             print("Number of bus: %d" % enterNum)
-            print("Entered at phase: #{}".format(self.currentPhase))
+            print("Entered at phase: #{}".format(currentPhase))
             print("Phase time: {}".format(phasetime))
             print("Entered at time: {}".format(time))
             print("Bus followed entered %d" % (enterNum - 1))
