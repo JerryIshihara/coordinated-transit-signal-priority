@@ -8,7 +8,7 @@ import csv
 # from scipy.misc import imresize
 import random
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server/log_files/'
+CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
 TransferToDQN = CWD + 'TransferToDQN.txt'
 TransferToAimsun = CWD + 'TransferToAimsun.txt'
 Scenario_End = CWD + 'Scenario_End.txt'
@@ -37,7 +37,7 @@ class AimsunEnv:
         self.state_flag = 0
         self.env_name = "aimsun"
         self.debug = debug
-        self.action_space = [(1,-20), (1,-15), (1,-10), (1,-5), (1,0), (1,5), (1,10), (1,15), (1,20)] # available actions
+        self.action_space = [(-1,-10), (-1,-5), (-1,5), (-1,10), (1,0), (1,5), (1,10), (1,15)] # available actions
 
         self.frame_num = 0
         self.action_flag = 1
@@ -93,8 +93,8 @@ class AimsunEnv:
                 self.state_flag = float(frmAimSun[-1])
                 # states = (target travel time, time to the end of the next green phase, No. of veh)
                 S_ = np.array(
-                    [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2]), float(frmAimSun[5]) - 290])  # variables defining states
-                S_ = np.reshape(S_, (1, 4))
+                    [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2])])  # variables defining states
+                S_ = np.reshape(S_, (1, 3))
             else:
                 frmAimSun = [0]
 
@@ -122,7 +122,8 @@ class AimsunEnv:
         d_in = np.absolute(float(frmAimSun[8]) - float(frmAimSun[7]) - 290)
         d_out = np.absolute(float(frmAimSun[4]) - float(frmAimSun[3]) - 290)
         improve = d_in - d_out
-        reward = (0.6 * improve - 0.4 * travelTime)
+        reward = 0.6 * improve - 0.4 * travelTime
+        reward = 1/(1 + np.exp(-reward))
 
 
 
@@ -205,8 +206,8 @@ class AimsunEnv:
                 self.state_flag = float(frmAimSun[-1])
                 # states = (target travel time, time to the end of the next green phase, No. of veh)
                 S_ = np.array(
-                    [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2]), float(frmAimSun[5]) - 290])  # variables defining states
-                S_ = np.reshape(S_, (1, 4))
+                    [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2])])  # variables defining states
+                S_ = np.reshape(S_, (1, 3))
             else:
                 frmAimSun = [0]
 

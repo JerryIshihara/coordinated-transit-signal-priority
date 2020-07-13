@@ -16,7 +16,7 @@ import time
 import pickle
 
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server/log_files/'
+CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
 
 Q_target_log =  CWD + 'Q_target.csv'
 Q_online_log = CWD + 'Q_online.csv'
@@ -325,6 +325,16 @@ class trainer:
                               self.epsilon
                               )
 
+    def normalize_state(self, state):
+        out = []
+        state = state[0]
+        out.append((state[0]-223.162698)/141.321376) # ttarget
+        out.append((state[1]-54.163896)/31.7719917) # toNearGreen
+        out.append((state[2]-11.450951)/7.92628154) # numVeh
+        out = np.reshape(out, (1, 3))
+        return out
+
+
 
     def save_model(self):
         all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet, self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
@@ -339,6 +349,7 @@ class trainer:
             except:
                 print("Create new model file...")
                 continue
+
 
 
     def load_model(self, flag=False):
@@ -414,30 +425,14 @@ class trainer:
             csv_write.writerow(targetFrob)
 
 
-    def normalize_state(self, state, state_batch):
-        '''
-        normalize state value using batch size 256
-        '''
-        if len(state_batch) == 0:
-            return state, state
-        if len(state_batch) == 256:
-            state_batch = state_batch[1:-1, :]
-        state_batch = np.concatenate((state_batch, state), axis=0)
-        normalized_state = []
-        for i, val in state[0, :]:
-            mean = np.mean(state_batch[:, i])
-            std = np.std(state_batch[:, i]) if np.std(state_batch[:, i]) != 0 else np.float(1)
-            normalized_state.append((val - mean) / std)
-        return normalized_state, state_batch
 
 
     def train(self, flag=False, log=False):
         #### traincycles
         eps_rew = 0.
         step_counter = 0.
-        state_batch = np.array([])
         self.save_model()
-        current_state, state_batch = self.normalize_state(self.env.reset(), state_batch)
+        current_state = self.normalize_state(self.env.reset())
 
 
         for STEP in range(self.MAX_STEPS):
@@ -460,8 +455,8 @@ class trainer:
             # apply action
             next_state, reward, done, senario_end = self.env.step(action)
             # normalization
-            next_state, state_batch = self.normalize_state(next_state, state_batch)
-            print("normalized: {}".format(next_state))
+            next_state = self.normalize_state(next_state)
+            print("normalized: {}, {}, {}".format(next_state[0][0], next_state[0][1], next_state[0][2]))
 
             # end training when simulation ends
             if senario_end:

@@ -1,0 +1,6 @@
+### git ignore files ###
+
+# mac folder attribute file
+*.DS_Store
+# python compiles
+*.pyc
