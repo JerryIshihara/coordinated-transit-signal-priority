@@ -4,3 +4,5 @@
 *.DS_Store
 # python compiles
 *.pyc
+# cache folder
+**/__pycache__
