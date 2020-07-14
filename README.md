@@ -1,11 +1,13 @@
 # Coordinate Transit Signal Priority (cTSP)
 ## Introduction
+<img src="/demo/tsp_flow.png" width="700"/> <br />
+Coordinate Transit Signal Priority with two traffic intersections in Toronto area, improving speed and reliability with a single deep reinforcement learning agent.
 ## Usage
-#### Clone the repository
+### 1. Clone the repository
 ```
 git clone https://github.com/JerryIshihara/TSP-Research.git
 ```
-#### load Python script to Aimsun model
+### 2. load Python script to Aimsun model
   - open Aimsun Next 8.3 and load the target Aimsun model
   - double click the dynamic senerio in the project list on the right of the screen
   <img src="/demo/dynamic_senario.png" width="500"/> <br />
@@ -13,8 +15,8 @@ git clone https://github.com/JerryIshihara/TSP-Research.git
     <img src="/demo/navBar.png" width="700"/> <br />
   - click `add` and load the file `detector.py` from the cloned repository (and inacvtive all other scripts)
   - save the model and close Aimsun Next
-#### Open the jupyter notebook ```agent.ipynb```, and run the first cell.
-#### Start the train by **either**
+### 3. Open the jupyter notebook ```agent.ipynb```, and run the first cell.
+### 4. Start the training by **either**
 a. running `train.sh` in terminal:
 
 ```
