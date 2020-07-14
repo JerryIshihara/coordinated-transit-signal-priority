@@ -1,15 +1,20 @@
 # Coordinate Transit Signal Priority (cTSP)
 ## Introduction
 ## Usage
-- #### Clone the repository
+#### Clone the repository
 ```
 git clone https://github.com/JerryIshihara/TSP-Research.git
 ```
-- #### Open Aimsun 8.3 with the target Aimsun model
-  - double click the dynamic senerio in the project list on the right of the screen <br />
-  ![Alt text](/demo/dynamic_senario.png)
-- #### Open the jupyter notebook ```agent.ipynb```, and run the first cell.
-- #### Start the train by **either**
+#### load Python script to Aimsun model
+  - open Aimsun Next 8.3 and load the target Aimsun model
+  - double click the dynamic senerio in the project list on the right of the screen
+  <img src="/demo/dynamic_senario.png" width="500"/> <br />
+  - select the `Aimsun Next APIs` tab in the pop-up window
+    <img src="/demo/navBar.png" width="700"/> <br />
+  - click `add` and load the file `detector.py` from the cloned repository (and inacvtive all other scripts)
+  - save the model and close Aimsun Next
+#### Open the jupyter notebook ```agent.ipynb```, and run the first cell.
+#### Start the train by **either**
 a. running `train.sh` in terminal:
 
 ```
