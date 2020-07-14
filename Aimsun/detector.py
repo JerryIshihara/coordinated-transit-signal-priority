@@ -1,7 +1,7 @@
 from AAPI import *
 import csv
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server/log_files/'
+CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
 TransferToDQN = CWD + 'TransferToDQN.txt'
 TransferToAimsun = CWD + 'TransferToAimsun.txt'
 Scenario_End = CWD + 'Scenario_End.txt'

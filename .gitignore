@@ -1,3 +1,8 @@
-.idea/
-phase 1/modules/__pycache__/
-phase 1/__pycache__/
+### git ignore files ###
+
+# mac folder attribute file
+*.DS_Store
+# python compiles
+*.pyc
+# cache folder
+**/__pycache__
