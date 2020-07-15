@@ -5,6 +5,12 @@
 # python compiles
 *.pyc
 # cache folder
-**/__pycache__
+*/__pycache__/*
 # log files
 log_files/*
+# ipynb
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+# IPython
+profile_default/
+ipython_config.py
