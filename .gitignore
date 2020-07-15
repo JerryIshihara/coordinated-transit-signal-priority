@@ -6,8 +6,9 @@
 *.pyc
 # cache folder
 */__pycache__/*
-# log files
+# keep log files not files
 log_files/*
+!log_files/.keep
 # ipynb
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
