@@ -7,7 +7,7 @@ Coordinate Transit Signal Priority with two traffic intersections in Toronto are
 ```
 git clone https://github.com/JerryIshihara/TSP-Research.git
 ```
-### 2. load Python script to Aimsun model
+### 2. Load Python script to Aimsun model
   - open Aimsun Next 8.3 and load the target Aimsun model
   - double click the dynamic senerio in the project list on the right of the screen
   <img src="/demo/dynamic_senario.png" width="500"/> <br />
