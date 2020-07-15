@@ -14,16 +14,19 @@ import numpy as np
 from numpy import linalg as LA
 import time
 import pickle
+import os, sys, inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir) 
+from config import *
 
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
-
-Q_target_log =  CWD + 'Q_target.csv'
-Q_online_log = CWD + 'Q_online.csv'
-Rt_log = CWD + 'Rt.csv'
-Loss = CWD + 'loss.csv'
-online_w = CWD + 'online_w.csv'
-target_w = CWD + 'target_w.csv'
+Q_target_log =  LOG_PATH + 'Q_target.csv'
+Q_online_log = LOG_PATH + 'Q_online.csv'
+Rt_log = LOG_PATH + 'Rt.csv'
+Loss = LOG_PATH + 'loss.csv'
+online_w = LOG_PATH + 'online_w.csv'
+target_w = LOG_PATH + 'target_w.csv'
 
 
 
@@ -342,7 +345,7 @@ class trainer:
         is_written = False
         while not is_written:
             try:
-                with open(CWD + 'Model', 'wb') as fout:
+                with open(LOG_PATH + 'Model', 'wb') as fout:
                     pickle.dump(all_attribute, fout)
                 is_written = True
                 print("Saving model...")
@@ -356,7 +359,7 @@ class trainer:
         if flag:
             try:
                 # all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet, self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
-                with open(CWD + 'Model', 'rb') as fin:
+                with open(LOG_PATH + 'Model', 'rb') as fin:
                     all_attribute =  pickle.load(fin)
 
 

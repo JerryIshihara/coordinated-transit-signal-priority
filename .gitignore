@@ -6,3 +6,5 @@
 *.pyc
 # cache folder
 **/__pycache__
+# log files
+log_files/*

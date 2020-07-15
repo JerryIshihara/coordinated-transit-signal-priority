@@ -1,13 +1,17 @@
 from AAPI import *
+import os, sys, inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir) 
+from config import *
 import csv
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
-TransferToDQN = CWD + 'TransferToDQN.txt'
-TransferToAimsun = CWD + 'TransferToAimsun.txt'
-Scenario_End = CWD + 'Scenario_End.txt'
-Num_bus_in_rep = CWD + 'Num_bus_in_rep.txt'
-Parameter_log = CWD + 'Parameter_log.csv'
-Temp_Reward = CWD + 'Temp_Reward.txt'
+TransferToDQN = LOG_PATH + 'TransferToDQN.txt'
+TransferToAimsun = LOG_PATH + 'TransferToAimsun.txt'
+Scenario_End = LOG_PATH + 'Scenario_End.txt'
+Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
+Parameter_log = LOG_PATH + 'Parameter_log.csv'
+Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
 
 
 

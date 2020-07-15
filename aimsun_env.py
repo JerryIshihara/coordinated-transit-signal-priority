@@ -5,16 +5,16 @@ import numpy as np
 import time
 import sys
 import csv
-# from scipy.misc import imresize
 import random
+from config import *
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
-TransferToDQN = CWD + 'TransferToDQN.txt'
-TransferToAimsun = CWD + 'TransferToAimsun.txt'
-Scenario_End = CWD + 'Scenario_End.txt'
-Reward_log = CWD + 'Reward.csv'
-Temp_Reward = CWD + 'Temp_Reward.txt'
-Num_bus_in_rep = CWD + 'Num_bus_in_rep.txt'
+
+TransferToDQN = LOG_PATH + 'TransferToDQN.txt'
+TransferToAimsun = LOG_PATH + 'TransferToAimsun.txt'
+Scenario_End = LOG_PATH + 'Scenario_End.txt'
+Reward_log = LOG_PATH + 'Reward.csv'
+Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
+Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
 
 
 # Initialize reward
