@@ -14,16 +14,19 @@ import numpy as np
 from numpy import linalg as LA
 import time
 import pickle
+import os, sys, inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir) 
+from config import *
 
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/aimsun_ddqn_server - sig/log_files/'
-
-Q_target_log =  CWD + 'Q_target.csv'
-Q_online_log = CWD + 'Q_online.csv'
-Rt_log = CWD + 'Rt.csv'
-Loss = CWD + 'loss.csv'
-online_w = CWD + 'online_w.csv'
-target_w = CWD + 'target_w.csv'
+Q_target_log =  LOG_PATH + 'Q_target.csv'
+Q_online_log = LOG_PATH + 'Q_online.csv'
+Rt_log = LOG_PATH + 'Rt.csv'
+Loss = LOG_PATH + 'loss.csv'
+online_w = LOG_PATH + 'online_w.csv'
+target_w = LOG_PATH + 'target_w.csv'
 
 
 
@@ -342,7 +345,7 @@ class trainer:
         is_written = False
         while not is_written:
             try:
-                with open(CWD + 'Model', 'wb') as fout:
+                with open(LOG_PATH + 'Model', 'wb') as fout:
                     pickle.dump(all_attribute, fout)
                 is_written = True
                 print("Saving model...")
@@ -356,7 +359,7 @@ class trainer:
         if flag:
             try:
                 # all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet, self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
-                with open(CWD + 'Model', 'rb') as fin:
+                with open(LOG_PATH + 'Model', 'rb') as fin:
                     all_attribute =  pickle.load(fin)
 
 
@@ -514,149 +517,3 @@ class trainer:
 
 
 
-
-'''
-#################### EXAMPLES ###################
-
-#################### train a ddqn:
-import mlp_framework as nn  # mlp framework
-
-# STEP 1: create configuration
-configuration = trainer_config(game_name='CartPole-v0',MAX_STEPS=100000)#game_name='CartPole-v0', game_name='LunarLander-v2'
-
-# STEP 2: build models (online & target)
-A1 = nn.layer(configuration.INPUT_SIZE,128)
-A2 = nn.layer(128,64)
-AOUT = nn.layer(64,configuration.OUTPUT_SIZE)
-AOUT.f = nn.f_iden
-L1 = nn.layer(configuration.INPUT_SIZE,128)
-L2 = nn.layer(128,64)
-LOUT = nn.layer(64,configuration.OUTPUT_SIZE)
-LOUT.f = nn.f_iden
-onlineNet = nn.mlp([A1,A2,AOUT])
-targetNet = nn.mlp([L1,L2,LOUT])
-
-### dueling networks: experimental. not working yet. check loss fnct deriv !!!!
-A0 = nn.layer(configuration.INPUT_SIZE,64)
-A1 = nn.layer(64,64)
-A0t = nn.layer(configuration.INPUT_SIZE,64)
-A1t = nn.layer(64,64)
-AA = nn.layer(64,64)
-AAA = nn.layer(64,1)
-B = nn.layer(64,64)
-BB = nn.layer(64,configuration.OUTPUT_SIZE)
-AAt = nn.layer(64,64)
-AAAt = nn.layer(64,1)
-Bt = nn.layer(64,64)
-BBt = nn.layer(64,configuration.OUTPUT_SIZE)
-LL0_ = [A0]
-LL0_t = [A0t]
-LLV_ = [AA,AAA]
-LLV_t = [AAt,AAAt]
-LLA_ = [B,BB]
-LLA_t = [Bt,BBt]
-onlineNet = nn.dueling_mlp(LL0_,LLV_,LLA_)
-targetNet = nn.dueling_mlp(LL0_t,LLV_t,LLA_t)
-
-### dense mlp for DDQN: works quite well, even with 7 layers. despite fast convergence, instability dips can be seen early in training 
-# regularozation helps a bit with instability ?! why is this happening in RL. maybe task dependent (CartPole-v0)
-INPUT_SIZE = configuration.INPUT_SIZE
-OUTPUT_SIZE = configuration.OUTPUT_SIZE
-growth = 20
-L1 = nn.layer(INPUT_SIZE,OUTPUT_SIZE*growth)
-L2 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*1*growth,OUTPUT_SIZE*growth)
-L3 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*2*growth,OUTPUT_SIZE*growth)
-L4 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*3*growth,OUTPUT_SIZE*growth)
-L5 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*4*growth,OUTPUT_SIZE*growth)
-L6 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*5*growth,OUTPUT_SIZE*growth)
-L7 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*6*growth,OUTPUT_SIZE*growth)
-LOUT = nn.layer(INPUT_SIZE+(OUTPUT_SIZE*7*growth),OUTPUT_SIZE)
-LOUT.f = nn.f_iden
-A1 = nn.layer(INPUT_SIZE,OUTPUT_SIZE*growth)
-A2 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*1*growth,OUTPUT_SIZE*growth)
-A3 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*2*growth,OUTPUT_SIZE*growth)
-A4 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*3*growth,OUTPUT_SIZE*growth)
-A5 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*4*growth,OUTPUT_SIZE*growth)
-A6 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*5*growth,OUTPUT_SIZE*growth)
-A7 = nn.layer(INPUT_SIZE+OUTPUT_SIZE*6*growth,OUTPUT_SIZE*growth)
-AOUT = nn.layer(INPUT_SIZE+(OUTPUT_SIZE*7*growth),OUTPUT_SIZE)
-AOUT.f = nn.f_iden
-onlineNet = nn.dense_mlp([A1,A2,A3,A4,A5,A6,A7,AOUT])
-targetNet = nn.dense_mlp([L1,L2,L3,L4,L5,L6,L7,LOUT])
-
-# STEP 3: create trainer
-ddqn = trainer(onlineNet,targetNet,configuration)
-
-# STEP 5: train the trainer (ddqn) for configuration.MAX_STEPS:
-ddqn.train(log=True)
-# OR: train the trainer (ddqn) for one episode by setting 'flag' = True :
-ddqn.train(True)
-
-#  STEP 6: 
-# get your models, config and logs from the trainer (see 'some useful stuff')
-
-#################### some usefull stuff:
-### save config
-# first_config = ddqn.save_config()
-### use new config ('new_config')
-# ddqn.load_config(new_config)
-### apply/get  model
-# ddqn.onlineNet = new_onlineNet
-# trained_targetNet  = ddqn.targetNet
-### clear REPLAY BUFFER
-# ddqn.REPLAY_BUFFER = ringbuffer(ddqn.BUFFER_SIZE)
-### get reward / loss logs
-# loss_list = ddqn.loss_plot
-# reward_list = ddqn.reward_plot
-
-
-#################### plotting and saving the model
-import pandas as pd
-import matplotlib.pyplot as plt
-import pickle as pkl
-reward_plot = np.array(ddqn.reward_plot)
-loss_plot = np.array(ddqn.loss_plot)
-
-rewdata = pd.Series(reward_plot)
-lossdata = pd.Series(loss_plot)
-
-plt.figure(figsize=(14,8))
-rewdata.plot(alpha=0.1,color='b')
-rewdata.rolling(window=100).mean().plot(style='g',alpha=.9)
-rewdata.rolling(window=50).mean().plot(style='b',alpha=.7)
-rewdata.rolling(window=20).mean().plot(style='r',alpha=.5)
-plt.title('reward over episodes')
-plt.figure(figsize=(14,8))
-lossdata.plot(alpha=0.1,color='b')
-lossdata.rolling(window=500).mean().plot(style='b')
-plt.title('loss over steps')
-plt.show()
-
-#### pickling doesn't work with SwigPyObjects. In case you use Box2D environments do:
-pkl.dump(ddqn.onlineNet,open("ddqn_targetNet.p","wb"))
-#### else you can pickle the whole trainer object for convenience
-#pkl.dump(ddqn, open("ddqn_trainer_model.p","wb"))
-print('done dump')
-
-
-
-#################### the agent in action (rendered games)
-envX = gym.make(configuration.game_name).env#('MountainCar-v0')#('Alien-v0')#('LunarLander-v2')
-for i_episode in range(20):  ## number of games to be played
-    observation = envX.reset()
-    rew = 0.
-    for t in range(configuration.STEPS_PER_EPISODE):
-        envX.render()
-        action = np.argmax(ddqn.targetNet.infer(observation[True,:]))
-        observation, reward, done, info = envX.step(action)
-        rew += reward
-        if done or (t+1) >= configuration.STEPS_PER_EPISODE:
-            print("Episode finished after {} timesteps with reward {}".format(t+1,rew))
-            time.sleep(3)
-            break
-
-
-
-
-
-''' and None

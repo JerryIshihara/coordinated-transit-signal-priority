@@ -1,9 +1,16 @@
 ### git ignore files ###
 
 # mac folder attribute file
-*.DS_Store
+**/.DS_Store
 # python compiles
 *.pyc
 # cache folder
 **/__pycache__
-.idea/
+# keep log files not files
+log_files/*
+!log_files/.keep
+# ipynb
+**/.ipynb_checkpoints
+# IPython
+profile_default/
+ipython_config.py
