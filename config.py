@@ -20,6 +20,16 @@ CWD = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 LOG_PATH = CWD + 'log_files/'
 
+
+# log files
+STATE = LOG_PATH + 'STATE.txt'
+ACTION = LOG_PATH + 'ACTION.txt'
+Scenario_End = LOG_PATH + 'Scenario_End.txt'
+Reward_log = LOG_PATH + 'Reward.csv'
+Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
+Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
+
+
 INTERSECTION_1 = {
     'intersection': 1171288,
     'busCallDetector': 1171407,

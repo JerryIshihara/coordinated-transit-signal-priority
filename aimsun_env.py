@@ -77,6 +77,7 @@ class AimsunEnv(Environment):
                 S_ = np.array(
                     [float(frmAimsun[0]), float(frmAimsun[1]), float(frmAimsun[2])])  # variables defining states
                 S_ = np.reshape(S_, (1, 3))
+                is_read = True
             else:
                 frmAimsun = [0]
 
