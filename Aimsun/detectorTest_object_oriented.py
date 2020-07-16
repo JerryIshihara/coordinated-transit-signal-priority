@@ -17,6 +17,7 @@ CONFIG_1 = {
     'section': 6601,
     'phase_duration': [16, 38, 7, 11, 32, 6],
     'phase_of_interest': 5,
+    'target_headway': 290
 }
 
 # =============== util =====================
@@ -83,6 +84,8 @@ class Intersection:
         check_in_phaseTime_L = self.check_in_phaseTime_L
         # >>>>>>>>>>>>>>>>> check out info <<<<<<<<<<<<<<<
         busoutime_list = self.busoutime_list
+        # >>>>>>>>>>>>>>>>> target headway <<<<<<<<<<<<<<<
+        target_headway = self.CONFIG['target_headway']
 
         # >>>>>>>>>>>>>>>>> reward <<<<<<<<<<<<<<<
         # reward
@@ -103,16 +106,16 @@ class Intersection:
         # NOTICE: busintime_list[2] can only use index 2 since it could be two buses entered in
         # the same cycle
         output = [replicationID, vehicleID, this_states[0], this_states[1], this_states[2],
-                  busintime_list[2], check_in_hdy_L[0], check_in_hdy_L[0] - 290, check_in_phase_no_L[0],
+                  busintime_list[2], check_in_hdy_L[0], check_in_hdy_L[0] - target_headway, check_in_phase_no_L[0],
                   check_in_phaseTime_L[0],
-                  busoutime_list[-1], check_out_hdy, check_out_hdy - 290, phasetime,
+                  busoutime_list[-1], check_out_hdy, check_out_hdy - target_headway, phasetime,
                   self.action, self.remain, travelTime, currentPhase]
 
         with open(Parameter_log, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')
             csv_write.writerow(output)
 
-        states.pop(0)
+        self.states.pop(0)
         busintime_list.pop(0)
         check_in_hdy_L.pop(0)
         check_in_phase_no_L.pop(0)
@@ -129,7 +132,7 @@ class Intersection:
 
 
     def AAPIPostManage(self, time, timeSta, timeTrans, acycle):
-
+        target_headway = self.CONFIG['target_headway']
         # retrieve intersection info from CONFIG
         intersection = self.CONFIG['intersection']
         busCallDetector = self.CONFIG['busCallDetector']
@@ -253,7 +256,7 @@ class Intersection:
                         f.close()
 
                         # log states
-                        states.append([tt_target, tToNearGreenPhase, self.allnumvel])
+                        self.states.append([tt_target, tToNearGreenPhase, self.allnumvel])
 
                         # Extend the phase for extended time
                         extend_green_phase(time, timeSta, currentPhase, phasetime, False, self)
@@ -274,7 +277,7 @@ class Intersection:
                     busExitDetector, busVehiclePosition) - 1, busVehiclePosition)
             for i in range(exitNum):
                 # If first vehicle equals last vehicle of last step
-                if i == 0 and busout_info.idVeh == last_out_info:
+                if i == 0 and busout_info.idVeh == self.last_out_info:
                     # Skip first vehicle and loop
                     continue
                 else:
@@ -311,7 +314,7 @@ class Intersection:
                         f.close()
 
                         # log states
-                        states.append([tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1])
+                        self.states.append([tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1])
 
                         tToNearGreenPhase_list.pop(0)
                         allnumvel_list.pop(0)
@@ -352,17 +355,17 @@ def AAPILoad():
     # replicationID (exit)
     # vehicleID (exit)
     # >>>>>>>>>>>>>>>>> state <<<<<<<<<<<<<<<
-    global states
+    # global states
+    #
+    # states = []
 
-    states = []
-
-    global action
-    global red_extend  # duration (sec) of green phase extension or reduction
-    global green_extend
-    global remain
-    action = 0
-    red_extend, green_extend = 0, 0
-    remain = 0
+    # global action
+    # global red_extend  # duration (sec) of green phase extension or reduction
+    # global green_extend
+    # global remain
+    # action = 0
+    # red_extend, green_extend = 0, 0
+    # remain = 0
 
     return 0
 
