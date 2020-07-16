@@ -38,7 +38,8 @@ INTERSECTION_1 = {
     'phase_duration': [38, 8, 13, 4, 40, 7],
     'phase_of_interest': 5,
     'AlgB_decision': 12,
-    'log': LOG_PATH + '1171288.csv'
+    'log': LOG_PATH + '1171288.csv',
+    'target_headway': 290
 }
 
 INTERSECTION_2 = {
@@ -49,7 +50,8 @@ INTERSECTION_2 = {
     'phase_duration': [16, 38, 7, 11, 32, 6],
     'phase_of_interest': 5,
     'AlgB_decision': 9,
-    'log': LOG_PATH + '1171274.csv'
+    'log': LOG_PATH + '1171274.csv',
+    'target_headway': 290
 }
 
-CORRIDOR = []
+CORRIDOR = [INTERSECTION_1, INTERSECTION_2]
