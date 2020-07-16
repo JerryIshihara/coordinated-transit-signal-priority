@@ -1,6 +1,3 @@
-"""
-Giacomo Spigler
-"""
 import numpy as np
 import time
 import sys
@@ -10,7 +7,7 @@ from config import *
 
 
 TransferToDQN = LOG_PATH + 'TransferToDQN.txt'
-TransferToAimsun = LOG_PATH + 'TransferToAimsun.txt'
+ACTION = LOG_PATH + 'ACTION.txt'
 Scenario_End = LOG_PATH + 'Scenario_End.txt'
 Reward_log = LOG_PATH + 'Reward.csv'
 Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
@@ -24,52 +21,37 @@ hdySchd = 4 * 60 + 50  # scheduled headway
 term_thres = 0.1
 
 
-class AimsunEnv:
-    """
-    Wrapper for OpenAI Gym Atari environments that returns the last 4 processed frames.
-    Input frames are converted to grayscale and downsampled from 120x160 to 84x112 and cropped to 84x84 around the game's main area.
-    The final size of the states is 84x84x4.
+class AimsunEnv(Environment):
 
-    If debug=True, an OpenCV window is opened and the last processed frame is displayed. This is particularly useful when adapting the wrapper to novel environments.
-    """
-
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, name, action_space):
+        Environment.__init__(self, name=name, action_space=action_space)
         self.state_flag = 0
-        self.env_name = "aimsun"
-        self.debug = debug
-        self.action_space = [(-1,-10), (-1,-5), (-1,5), (-1,10), (1,0), (1,5), (1,10), (1,15)] # available actions
-
-        self.frame_num = 0
         self.action_flag = 1
+        self.frame_num = 0
         self.num_bus = 0
 
-    # def seed(self, seed=None):
-    #     return self.env._seed(seed)
-
-    def step(self, a):
-        output = [self.action_space[a], self.action_flag]
-        print("Env.step()---action: " + str(output))
-        self.action_flag *= -1
-
+    def _write_action(self, index):
         is_written = False
         while not is_written:
             try:
-                f = open(TransferToAimsun, "w+")
-                f.write("{} {} {}".format(output[0][0], output[0][1], output[1]))
+                f = open(self.ACTION_LOG, "w+")
+                f.write("{} {} {}".format(self.action_space[index][0], self.action_space[index][1], self.action_flag))
                 f.close()
                 is_written = True
+                self.action_flag *= -1
             except:
-                print("failed writing files")
                 continue
 
-        frmAimSun = [0]
+    def _get_state(self):
+        is_read = False
+        frmAimsun = [0]
         start = time.time()
-        while len(frmAimSun) < 2:
+        while not is_read:
             try:
-                f = open(TransferToDQN, "r")
-                frmAimSun = f.read()
+                f = open(self.STATE_LOG, "r")
+                frmAimsun = f.read()
                 f.close()
-                frmAimSun = frmAimSun.split()
+                frmAimsun = frmAimsun.split()
             except:
                 continue
 
@@ -89,14 +71,55 @@ class AimsunEnv:
                     sys.stdout.flush()
                     return [], 0, False, True
 
-            if len(frmAimSun) != 0 and float(frmAimSun[-1]) != self.state_flag:
-                self.state_flag = float(frmAimSun[-1])
+            if len(frmAimsun) != 0 and float(frmAimsun[-1]) != self.state_flag:
+                self.state_flag = float(frmAimsun[-1])
                 # states = (target travel time, time to the end of the next green phase, No. of veh)
                 S_ = np.array(
-                    [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2])])  # variables defining states
+                    [float(frmAimsun[0]), float(frmAimsun[1]), float(frmAimsun[2])])  # variables defining states
                 S_ = np.reshape(S_, (1, 3))
             else:
-                frmAimSun = [0]
+                frmAimsun = [0]
+
+    def step(self, action_index):
+
+        self._write_action(action_index)
+        S_ = self._get_state()
+
+        # frmAimSun = [0]
+        # start = time.time()
+        # while len(frmAimSun) < 2:
+        #     try:
+        #         f = open(TransferToDQN, "r")
+        #         frmAimSun = f.read()
+        #         f.close()
+        #         frmAimSun = frmAimSun.split()
+        #     except:
+        #         continue
+
+        #     senario_end = self.senario_is_end()
+        #     if senario_end:
+        #         if time.time() - start < 60:
+        #             sys.stdout.write("Training end in {} min  \r".format(2))
+        #             sys.stdout.flush()
+        #         elif time.time() - start < 90:
+        #             sys.stdout.write("Training end in {} min  \r".format(1))
+        #             sys.stdout.flush()
+        #         elif time.time() - start < 120:
+        #             sys.stdout.write("Training end in {:.2f} sec  \r".format(120 - (time.time() - start)))
+        #             sys.stdout.flush()
+        #         elif time.time() - start > 300:
+        #             sys.stdout.write("Reset  \r")
+        #             sys.stdout.flush()
+        #             return [], 0, False, True
+
+        #     if len(frmAimSun) != 0 and float(frmAimSun[-1]) != self.state_flag:
+        #         self.state_flag = float(frmAimSun[-1])
+        #         # states = (target travel time, time to the end of the next green phase, No. of veh)
+        #         S_ = np.array(
+        #             [float(frmAimSun[0]), float(frmAimSun[1]), float(frmAimSun[2])])  # variables defining states
+        #         S_ = np.reshape(S_, (1, 3))
+        #     else:
+        #         frmAimSun = [0]
 
         outLead = float(frmAimSun[3])
         outFollow = float(frmAimSun[4])
@@ -168,7 +191,7 @@ class AimsunEnv:
                 f = open(TransferToDQN, "w+")
                 f.write("")
                 f.close()
-                f = open(TransferToAimsun, "w+")
+                f = open(ACTION, "w+")
                 f.write("")
                 f.close()
                 is_written = True
@@ -216,7 +239,7 @@ class AimsunEnv:
 
 
     def rand_action(self):
-        return np.random.randint(0, 4)
+        return np.random.randint(0, len(self.action_space))
 
     def senario_is_end(self):
         senario = []

@@ -14,7 +14,9 @@ LOG_PATH : str
     log files folder
 """
 
-CWD = 'C:/Users/Public/Documents/ShalabyGroup/tsp_base_b_2intx/'
+import os, inspect
+
+CWD = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 
 LOG_PATH = CWD + 'log_files/'
 
