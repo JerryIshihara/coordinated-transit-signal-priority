@@ -23,7 +23,7 @@ term_thres = 0.1
 
 class AimsunEnv(Environment):
 
-    def __init__(self, debug=False, name, action_space):
+    def __init__(self, name, action_space):
         Environment.__init__(self, name=name, action_space=action_space)
         self.state_flag = 0
         self.action_flag = 1

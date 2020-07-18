@@ -11,21 +11,18 @@ class Environment:
     Attributes:
         ACTION_LOG (TYPE): Description
         action_space (TYPE): Description
-        debug (TYPE): Description
         env_name (TYPE): Description
         STATE_LOG (TYPE): Description
     """
     
-    def __init__(self, debug=False, name, action_space):
+    def __init__(self, name, action_space):
         """Summary
         
         Args:
-            debug (bool, optional): Description
             name (TYPE): Description
             action_space (TYPE): Description
         """
         self.env_name = name
-        self.debug = debug
         self.action_space = action_space
         self.STATE_LOG = STATE
         self.ACTION_LOG = ACTION
