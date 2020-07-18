@@ -14,3 +14,4 @@ log_files/*
 # IPython
 profile_default/
 ipython_config.py
+.idea/
