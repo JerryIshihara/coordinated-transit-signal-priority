@@ -1,28 +1,30 @@
-"""Summary
+"""
+A class that creates functionally that the enviroment must have
 """
 import numpy as np
 import random
 from config import *
 
 
-class Environment:
-    """Summary
+class Environment():
     
+    """
     Attributes:
-        ACTION_LOG (TYPE): Description
-        action_space (TYPE): Description
-        debug (TYPE): Description
-        env_name (TYPE): Description
-        STATE_LOG (TYPE): Description
+        ACTION_LOG (str): file path to the textfile that records the chosen action at every time step
+                            action_space (List[(int, int)]): a set of possible actions
+        debug (bool): 
+        env_name (str): name of this environment
+        STATE_LOG (str): file path to the textfile that records the states (collected when time steps are renewed)
     """
     
     def __init__(self, debug=False, name, action_space):
-        """Summary
+        """
+        Initialize an environment object
         
         Args:
-            debug (bool, optional): Description
-            name (TYPE): Description
-            action_space (TYPE): Description
+            debug (bool, optional): 
+            name (str): name of the initialized environment
+            action_space (List[(int, int)]): a set of possible actions 
         """
         self.env_name = name
         self.debug = debug
@@ -31,29 +33,31 @@ class Environment:
         self.ACTION_LOG = ACTION
 
     def step(self, action_index):
-        """Summary
+        """
+        steps return, called when apply actions. Returns the next state, reward, and two 
+        booleans indicating whether the simulation ends and whether the episode is done
         
         Args:
-            action_index (int): Description
-        
+            action_index (int): the action index is equal to argmax Q, and will 
+                                    use the index to obtain the action from the action space
         Raises:
-            NotImplementedError: Description
+            NotImplementedError
         """
         raise NotImplementedError
 
     def reset(self):
-        """Summary
-        
+        """
+        Begin the episode with a random state
         Raises:
-            NotImplementedError: Description
+            NotImplementedError
         """
         raise NotImplementedError
 
     def rand_action(self):
-        """Summary
-        
+        """
+        Choose an action randomly (exploring)
         Returns:
-            TYPE: Description
+            int: index of a random action drew from the action space
         """
         return np.random.randint(0, len(self.action_space))
 
