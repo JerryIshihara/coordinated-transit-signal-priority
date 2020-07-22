@@ -17,18 +17,15 @@ LOG_PATH : str
 import os, inspect
 
 CWD = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-
 LOG_PATH = CWD + 'log_files/'
 
-
 # log files
-STATE = LOG_PATH + 'STATE.txt'
-ACTION = LOG_PATH + 'ACTION.txt'
-Scenario_End = LOG_PATH + 'Scenario_End.txt'
-Reward_log = LOG_PATH + 'Reward.csv'
-Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
+STATE = LOG_PATH + 'state.txt'
+ACTION = LOG_PATH + 'action.txt'
+REWARD = LOG_PATH + 'reward.csv'
+# Scenario_End = LOG_PATH + 'Scenario_End.txt'
+# Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
 Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
-
 
 INTERSECTION_1 = {
     'intersection': 1171288,
@@ -41,7 +38,6 @@ INTERSECTION_1 = {
     'log': LOG_PATH + '1171288.csv',
     'target_headway': 290
 }
-
 INTERSECTION_2 = {
     'intersection': 1171274,
     'busCallDetector': 1171405,

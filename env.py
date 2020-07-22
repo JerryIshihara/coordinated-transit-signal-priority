@@ -6,14 +6,15 @@ import random
 from config import *
 
 
-class Environment():
 
+class Environment():
     """
     Attributes:
-        ACTION_LOG (str): file path to the textfile that records the chosen action at every time step
-        action_space (List[(int, int)]): a set of possible actions
         env_name (str): name of this environment
+        action_space (List[(int, int)]): a set of possible actions
         STATE_LOG (str): file path to the textfile that records the states (collected when time steps are renewed)
+        ACTION_LOG (str): file path to the textfile that records the chosen action at every time step
+        REWARD_LOG (str): file path to the csv that records reward at every time step
     """
     
     def __init__(self, name, action_space):
@@ -28,6 +29,7 @@ class Environment():
         self.action_space = action_space
         self.STATE_LOG = STATE
         self.ACTION_LOG = ACTION
+        self.REWARD_LOG = REWARD
 
     def step(self, action_index):
         """
@@ -39,7 +41,6 @@ class Environment():
                                     use the index to obtain the action from the action space
         
         Raises:
-            NotImplementedError: Description
             NotImplementedError
         """
         raise NotImplementedError
@@ -49,7 +50,6 @@ class Environment():
         Begin the episode with a random state
         
         Raises:
-            NotImplementedError: Description
             NotImplementedError
         """
         raise NotImplementedError
