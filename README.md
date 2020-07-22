@@ -1,4 +1,5 @@
 # Coordinate Transit Signal Priority (cTSP)
+> Project in progress
 ## Introduction
 <img src="/demo/tsp_flow.png" width="700"/> <br />
 Coordinate Transit Signal Priority with two traffic intersections in Toronto area, improving speed and reliability with a single deep reinforcement learning agent.
