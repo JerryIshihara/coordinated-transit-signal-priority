@@ -52,6 +52,7 @@ At each time step, the RL model
 
 ### 2.	State
 States are collected when time steps are renewed. A state includes observations at all intersections in the system which contains bus-, traffic-, and signal-related information. Each intersection has following observations:
+<img src="/demo/prePOZ.png" width="700"/> <br />
 - Upstream of the POZ, downstream of the upstream intersection (prePOZ)
   - Check-out time of the bus closest to the downstream POZ
   - number of buses
