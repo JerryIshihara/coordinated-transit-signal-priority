@@ -469,7 +469,6 @@ class trainer:
             if (self.env.get_num_bus_in_rep() == 1):
                 self.REPLAY_BUFFER.delete()
                 print(">>>>>>>Passed 1st bus.\n")
-
             else:
                 eps_rew += reward
                 self.REPLAY_BUFFER.add(
