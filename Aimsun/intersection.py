@@ -142,8 +142,16 @@ class Intersection:
 
     def get_state(self):
         '''return prePOZ state and POZ state (8 slots)
+
+        based on 3 conditions: 
+        1. bus in prePOZ 
+        2. bus in POZ
+        3. no bus
         '''
-        None
+        # TODO
+        prePOZ = ...
+        POZ = ...
+        return [*prePOZ, *POZ]
 
     def _compute_reward(self, travelTime, bus_object):
         """Summary
