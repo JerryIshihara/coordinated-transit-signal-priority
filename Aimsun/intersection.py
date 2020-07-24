@@ -1,7 +1,19 @@
+"""Summary
+"""
 from AAPI import *
+from BusInPoz import *
 import csv
 
 # =============== util =====================
+
+
+def get_phase_number(total_number_of_phases, phase_number):
+    # wrap around the phases (use this to find phase after last phase or before phase 1)
+    while phase_number <= 0:
+        phase_number += total_number_of_phases
+    while phase_number > total_number_of_phases:
+        phase_number -= total_number_of_phases
+    return phase_number
 
 
 def time_to_phase_end(phase_duration, phase):
@@ -72,7 +84,6 @@ class Intersection:
     tToNearGreenPhase_list : list
         Description
     """
-
     def __init__(self, CONFIG):
         """Summary
 
@@ -82,6 +93,8 @@ class Intersection:
             Description
         """
         self.CONFIG = CONFIG
+        self.cycled_bus = 0
+        self.total_bus = 0
         self.bunch_list = []
         self.in_bus = []
         self.in_list = [0]
@@ -98,7 +111,7 @@ class Intersection:
         self.markedbus = 0  # if a bus is marked as indicator
         self.markedbusgone = 0  # if a marked bus had exited
         self.busin_info = 0
-        self.POZactive = 0
+        self.replicationID = None
         self.extend_record = {}
         self.LOG = self.CONFIG['log']
 
@@ -124,80 +137,208 @@ class Intersection:
                                             self.CONFIG['phase_of_interest'])
             past_phase = time_to_phase_end(self.CONFIG['phase_duration'],
                                            currentPhase - 1)
-            t = to_interest - phasetime + extended - past_phase
-        else:
-            t = sum(self.CONFIG['phase_duration']) - phasetime + extended
-        print('currentPhase: {}   phaseTime: {}   extended: {}'.format(
-            currentPhase, phasetime, extended))
-        print(self.CONFIG['phase_duration'])
-        print('to nearest green: {}'.format(t))
-        return t
+            return to_interest - phasetime + extended - past_phase
+        return sum(self.CONFIG['phase_duration']) - phasetime + extended
 
-    def _bus_enter_handler(self, time):
+    def _compute_reward(self, travelTime, bus_object):
         """Summary
+        compute reward gained by a newly checked out bus
+
+        Parameters
+        ----------
+        travelTime : TYPE
+            Description
+        bus_object : TYPE
+            Description
 
         Returns
         -------
         TYPE
             Description
         """
+        d_out = abs(bus_object.check_out_headway -
+                    self.CONFIG['target_headway'])
+        d_in = abs(bus_object.check_in_headway - self.CONFIG['target_headway'])
+        improve = d_in - d_out
+        new_reward = 0.6 * improve - 0.4 * travelTime
+        return new_reward
+
+    def _bus_enter_handler(self, time):
+        """Summary
+
+        Parameters
+        ----------
+        time : TYPE
+            Description
+
+        No Longer Returned
+        ------------------
+        TYPE
+            Description
+        """
+        # retrieve intersection info from CONFIG
         intersection = self.CONFIG['intersection']
         busCallDetector = self.CONFIG['busCallDetector']
+        section = self.CONFIG['section']
         # get bus internal position
-        busVehiclePosition = AKIVehGetVehTypeInternalPosition(1171922)
+        busVehiclePosition = AKIVehGetVehTypeInternalPosition(1171922)  
+        target_headway = self.CONFIG['target_headway']
+        self.replicationID = ANGConnGetReplicationId()
+        # determine which phase is green in the bus's perspective
+        phase_of_interest = self.CONFIG['phase_of_interest']
+        # assumption for this is that all phases has duration defined
+        total_phases = len(self.CONFIG['phase_duration'])
         # current phase time
         phasetime = time - ECIGetStartingTimePhase(intersection)
         # get current phase
         currentPhase = ECIGetCurrentPhase(intersection)
-        # number of buses entered
-        enterNum = AKIDetGetCounterCyclebyId(busCallDetector,
-                                             busVehiclePosition)
+        # find phase before and after phase of interest
+        phase_after_phase_of_interest = get_phase_number(
+            total_phases, phase_of_interest + 1)
+        phase_before_phase_of_interest = get_phase_number(
+            total_phases, phase_of_interest - 1)
+        # green phase ended and the buses that are still in POZ becomes cycled buses
+        if currentPhase == phase_after_phase_of_interest and phasetime == 0:
+            self.cycled_bus = self.numbus
+        if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
+            self.green_extend = 0
+            ECIChangeTimingPhase(
+                intersection, 
+                phase_of_interest,
+                self.CONFIG['phase_duration'][phase_of_interest - 1], 
+                timeSta)
+        # if currentPhase != 4 and (self.numbus - self.cycled_bus == 0):
+        #     self.red_extend = 0
+        #     ECIChangeTimingPhase(
+        #         intersection, 
+        #         phase_before_phase_of_interest,
+        #         self.CONFIG['phase_duration'][phase_before_phase_of_interest -1],
+        #         timeSta)
+        # Check number of all vehicles in and out
+        self.allnumvel = AKIVehStateGetNbVehiclesSection(section, True)
+        # bus enter check
+        enterNum = AKIDetGetCounterCyclebyId(
+            busCallDetector,
+            busVehiclePosition)  # Number of entering bus(es) in last step
+
+        new_state = []
+        new_bus_entered = False
+
         if enterNum > 0:
-            print("{}: Bus enter {}".format(intersection, enterNum))
+            self.cycled_bus = 0
+            self.total_bus += 1
+            print("------- No.{} Bus Checked -------".format(self.total_bus))
             # First vehicle info
-            self.busin_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(busCallDetector, 0, busVehiclePosition)
+            busin_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(
+                busCallDetector, 0, busVehiclePosition)
             # Last vehicle info
             temp_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(
-                busCallDetector, enterNum - 1, busVehiclePosition)
+                busCallDetector,
+                AKIDetGetNbVehsEquippedInDetectionCyclebyId(busCallDetector, busVehiclePosition) - 1,
+                busVehiclePosition)
+
+            # is_written = False
+            # while not is_written:
+            #     try:
+            #         f = open(Num_bus_in_rep, "w+")
+            #         f.write("%d " % self.total_bus)
+            #         f.close()
+            #         is_written = True
+            #     except:
+            #         print("failed writing files")
+            #         continue
+
             for i in range(enterNum):
                 # If first vehicle equals last vehicle of last step
-                if i == 0 and self.busin_info.idVeh == self.last_in_info:
+                if i == 0 and busin_info.idVeh == self.last_in_info:
                     # Skip first vehicle and loop
                     continue
                 else:
+                    new_bus_entered = True
+                    if self.list_of_bus_in_POZ:
+                        last_check_in_time = self.list_of_bus_in_POZ[-1].check_in_time
+                    else:
+                        last_check_in_time = time - target_headway  # for the first bus, assume that the check in headway is perfect
+                    self.list_of_bus_in_POZ.append(
+                        BusInPoz(
+                            intersection, 
+                            busin_info,
+                            currentPhase,
+                            phasetime,
+                            time,
+                            last_check_in=last_check_in_time)
+                        )
                     self.numbus += 1
-                    print("Bus after entered %d" % self.numbus)
-                    self.busintime_list.append(time)
-                    self.busininfo_list.append(
-                        AKIDetGetInfVehInDetectionInfVehCyclebyId(
-                            busCallDetector, i, busVehiclePosition).idVeh)
-                    self.tToNearGreenPhase_list.append(
-                        self.get_toNearGreenPhase(currentPhase, phasetime,
-                                                  self.extended))
-                    self.in_list.append(time)
-                    self.in_bus.append(self.busin_info.idVeh)
-                    self.bunch_list.append(self.numbus > 1)
-                    self.extend_record[self.busin_info.idVeh] = 0
+                    self.allnumvel += 1
             self.last_in_info = temp_info.idVeh
 
     def _bus_out_handler(self, time):
+        """Summary
+
+        Parameters
+        ----------
+        time : TYPE
+            Description
+        """
+        # retrieve intersection info from CONFIG
         intersection = self.CONFIG['intersection']
         busExitDetector = self.CONFIG['busExitDetector']
+        section = self.CONFIG['section']
         # get bus internal position
-        busVehiclePosition = AKIVehGetVehTypeInternalPosition(1171922)
+        busVehiclePosition = AKIVehGetVehTypeInternalPosition(1171922)  
+        target_headway = self.CONFIG['target_headway']
+        self.replicationID = ANGConnGetReplicationId()
+        # determine which phase is green in the bus's perspective
+        phase_of_interest = self.CONFIG['phase_of_interest']
+        # assumption for this is that all phases has duration defined
+        total_phases = len(self.CONFIG['phase_duration'])
         # current phase time
         phasetime = time - ECIGetStartingTimePhase(intersection)
-        currentPhase = ECIGetCurrentPhase(intersection)  # get current phase
-        # Number of exit vehicle in last step
-        exitNum = AKIDetGetCounterCyclebyId(busExitDetector,
-                                            busVehiclePosition)
+        # get current phase
+        currentPhase = ECIGetCurrentPhase(intersection)
+        # find phase before and after phase of interest
+        phase_after_phase_of_interest = get_phase_number(
+            total_phases, phase_of_interest + 1)
+        phase_before_phase_of_interest = get_phase_number(
+            total_phases, phase_of_interest - 1)
+        # green phase ended and the buses that are still in POZ becomes cycled buses
+        if currentPhase == phase_after_phase_of_interest and phasetime == 0:
+            self.cycled_bus = self.numbus
+        if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
+            self.green_extend = 0
+            ECIChangeTimingPhase(
+                intersection, 
+                phase_of_interest,
+                self.CONFIG['phase_duration'][phase_of_interest - 1], 
+                timeSta)
+        # if currentPhase != 4 and (self.numbus - self.cycled_bus == 0):
+        #     self.red_extend = 0
+        #     ECIChangeTimingPhase(
+        #         intersection, 
+        #         phase_before_phase_of_interest,
+        #         self.CONFIG['phase_duration'][phase_before_phase_of_interest -1],
+        #         timeSta)
+        # Check number of all vehicles in and out
+        self.allnumvel = AKIVehStateGetNbVehiclesSection(section, True)
+        # bus enter check
+        enterNum = AKIDetGetCounterCyclebyId(
+            busCallDetector,
+            busVehiclePosition)  # Number of entering bus(es) in last step
+
+        new_state = []
+        new_bus_entered = False
+        # bus exit check
+        exitNum = AKIDetGetCounterCyclebyId(busExitDetector, busVehiclePosition)  # Number of exit vehicle in last step
         if exitNum > 0:
+            print("-------- Bus exited %d ---------" % exitNum)
+            print("Exited at time: " + str(time))
             # First vehicle info
             busout_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(
                 busExitDetector, 0, busVehiclePosition)
             # Last vehicle info
             temp_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(
-                busExitDetector, exitNum - 1, busVehiclePosition)
+                busExitDetector, AKIDetGetNbVehsEquippedInDetectionCyclebyId(
+                    busExitDetector, busVehiclePosition) - 1, busVehiclePosition)
             for i in range(exitNum):
                 # If first vehicle equals last vehicle of last step
                 if i == 0 and busout_info.idVeh == self.last_out_info:
@@ -205,56 +346,57 @@ class Intersection:
                     continue
                 else:
                     self.numbus -= 1
-                    if self.numbus == -1:
-                        self.numbus = 0
-                    print("Bus after exited %d" % self.numbus)
+                    self.allnumvel -= 1
+                    print("Bus banching %d" % self.numbus)
+                    checkout_id = busout_info.idVeh
+                    checked_out_bus = checkout_bus_from_POZ(checkout_id, time)
+                    self.list_of_bus_checked_out.append(checked_out_bus)
 
-                    self.out_list.append(time)
-                    travelTime = time - self.busintime_list[0]
-                    in_dev = self.in_list[1] - self.in_list[0] - 290
-                    out_dev = self.out_list[-1] - self.out_list[-2] - 290
-                    # check if the marked bus has exited
-                    temp_out = AKIDetGetInfVehInDetectionInfVehCyclebyId(
-                        busExitDetector, i, busVehiclePosition)
-                    one_cycle = 1 if travelTime <= self.tToNearGreenPhase_list[0] + \
-                        self.extend_record[temp_out.idVeh] + 3 else 0
-                    print("[{}]: {} Bus extended {}".format(
-                        intersection, temp_out.idVeh,
-                        self.extend_record[temp_out.idVeh]))
-                    if temp_out.idVeh == self.markedbus:
-                        self.markedbusgone = 1
-                        self.markedbus = 0
-                    log = [
-                        ANGConnGetReplicationId(), self.allnumvel,
-                        self.busintime_list[0], time,
-                        self.extend_record[temp_out.idVeh], 'EB', travelTime,
-                        in_dev, out_dev, self.bunch_list[0], one_cycle,
-                        self.tToNearGreenPhase_list[0], self.in_bus[0],
-                        busout_info.idVeh
-                    ]
-                    # else:
-                    #     log = [
-                    #         ANGConnGetReplicationId(), self.allnumvel, self.busintime_list[0],
-                    #         time,self.extend_record[busout_info.idVeh], 'EB',
-                    #         travelTime, in_dev, out_dev, self.bunch_list[0],
-                    #         one_cycle, self.tToNearGreenPhase_list[0],
-                    #         self.in_bus[0], busout_info.idVeh
-                    #     ]
-                    # Log extension for each exiting bus
-                    print(log)
-                    with open(self.LOG, "a+") as out:  # Log key parameters
-                        csv_write = csv.writer(out, dialect='excel')
-                        csv_write.writerow(log)
-                    # Removing the 1st vehicle enter info
-                    self.busintime_list.pop(0)
-                    self.busininfo_list.pop(0)
-                    self.tToNearGreenPhase_list.pop(0)
-                    self.in_list.pop(0)
-                    self.out_list.pop(0)
-                    self.in_bus.pop(0)
-                    self.bunch_list.pop(0)
+                    if checked_out_bus is False:
+                        print("Cannot found the bus {} in POZ".format(checkout_id))
+                    travelTime = checked_out_bus.check_out_time - checked_out_bus.check_in_time
+
+                    ##### log #########
+                    self.log_parameter_file(busout_info, phasetime)
+                    ###### log #######
+
+                    print("red_extend: {}".format(self.red_extend))
+                    print("green_extend: {}".format(self.green_extend))
+                    print("Green phase remaining at exit: {}".format(self.remain))
+
+                    reward_gained = _compute_reward(travelTime, checked_out_bus)
+                    self.cumulative_reward += reward_gained
+                    print("Reward gained at checked out: {}".format(reward_gained))
 
             self.last_out_info = temp_info.idVeh
+
+        extended = self.red_extend + self.green_extend
+        tToNearGreenPhase = self.get_toNearGreenPhase(currentPhase, phasetime, 0)
+        if tToNearGreenPhase <0:
+            # already in an extended green phase
+            tToNearGreenPhase = 0
+
+        if self.numbus>0:
+            # last available checkout for this intersection
+            if self.numbus > 1:
+                # bunch, use current time as last checkout
+                last_available_checkout_time = time
+            elif len(self.list_of_bus_checked_out) == 0:
+                # first bus
+                last_available_checkout_time = time - self.CONFIG['target_headway']
+            else:
+                last_available_checkout_time = self.list_of_bus_checked_out[-1].check_out_time
+            # check in time of the last bus checked in
+            last_check_in_time = self.list_of_bus_in_POZ[-1].check_in_time
+            check_in_hdy = self.list_of_bus_in_POZ[-1].check_in_headway
+            new_state = [last_available_checkout_time, last_check_in_time, check_in_hdy, self.numbus, self.allnumvel, tToNearGreenPhase]
+        else:
+            new_state = [0, 0, 0, 0, 0, 0]
+
+        if len(self.list_of_bus_checked_out) > 10:
+            self.list_of_bus_checked_out = self.list_of_bus_checked_out[-6:]
+
+        return new_bus_entered, new_state
 
     def POZ_handler(self, time, timeSta, timeTrans, acycle):
         """Summary
@@ -318,6 +460,3 @@ class Intersection:
             self.POZactive = 0
 
         return 0
-
-
-

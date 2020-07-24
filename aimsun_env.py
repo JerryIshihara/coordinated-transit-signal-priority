@@ -1,3 +1,14 @@
+"""Summary
+
+Attributes:
+    hdySchd (TYPE): Description
+    Num_bus_in_rep (TYPE): Description
+    Scenario_End (TYPE): Description
+    Temp_Reward (TYPE): Description
+    term_thres (float): Description
+    wh1 (float): Description
+    wh2 (float): Description
+"""
 import numpy as np
 import time
 import sys
@@ -20,7 +31,22 @@ term_thres = 0.1
 
 class AimsunEnv(Environment):
 
+    """Summary
+    
+    Attributes:
+        action_flag (int): Description
+        frame_num (int): Description
+        num_bus (int): Description
+        state_flag (int): Description
+    """
+    
     def __init__(self, name, action_space):
+        """Summary
+        
+        Args:
+            name (TYPE): Description
+            action_space (TYPE): Description
+        """
         Environment.__init__(self, name=name, action_space=action_space)
         self.state_flag = 0
         self.action_flag = 1
@@ -28,6 +54,14 @@ class AimsunEnv(Environment):
         self.num_bus = 0
 
     def _compute_and_log_reward(self, frmAimsun):
+        """Summary
+        
+        Args:
+            frmAimsun (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         # compute reward
         travelTime = float(frmAimsun[5])        
         d_in = np.absolute(float(frmAimsun[8]) - float(frmAimsun[7]) - 290)
@@ -42,6 +76,11 @@ class AimsunEnv(Environment):
         return reward
 
     def _write_action(self, index):
+        """Summary
+        
+        Args:
+            index (TYPE): Description
+        """
         is_written = False
         while not is_written:
             try:
@@ -54,6 +93,11 @@ class AimsunEnv(Environment):
                 continue
 
     def _get_state(self):
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         is_read = False
         while not is_read:
             try:
@@ -74,9 +118,15 @@ class AimsunEnv(Environment):
 
         return S_, frmAimsun
 
-        
-
     def step(self, action_index):
+        """Summary
+        
+        Args:
+            action_index (TYPE): Description
+        
+        Returns:
+            TYPE: Description
+        """
         self._write_action(action_index)
         S_, frmAimsun = self._get_state()
         reward = self._compute_and_log_reward(frmAimsun)
@@ -86,25 +136,20 @@ class AimsunEnv(Environment):
         return S_, reward, False, False
 
     def reset(self):
-        # is_written = False
-        # while not is_written:
-        #     try:
-        #         f = open(TransferToDQN, "w+")
-        #         f.write("")
-        #         f.close()
-        #         f = open(ACTION, "w+")
-        #         f.write("")
-        #         f.close()
-        #         is_written = True
-        #     except Exception as e:
-        #         print("reset ERROR: " + e)
-        #         continue
-
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         S_, frmAimsun = self._get_state()
         return S_
 
-
     def get_num_bus_in_rep(self):
+        """Summary
+        
+        Returns:
+            TYPE: Description
+        """
         num_bus = []
         while len(num_bus) != 1:
             try:
