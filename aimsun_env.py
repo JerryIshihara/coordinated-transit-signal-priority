@@ -22,15 +22,8 @@ Temp_Reward = LOG_PATH + 'Temp_Reward.txt'
 Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
 
 
-# Initialize reward
-wh1 = 0.2
-wh2 = 0.45
-hdySchd = 4 * 60 + 50  # scheduled headway
-term_thres = 0.1
-
 
 class AimsunEnv(Environment):
-
     """Summary
     
     Attributes:

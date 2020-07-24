@@ -140,6 +140,11 @@ class Intersection:
             return to_interest - phasetime + extended - past_phase
         return sum(self.CONFIG['phase_duration']) - phasetime + extended
 
+    def get_state(self):
+        '''return prePOZ state and POZ state (8 slots)
+        '''
+        None
+
     def _compute_reward(self, travelTime, bus_object):
         """Summary
         compute reward gained by a newly checked out bus
@@ -272,6 +277,8 @@ class Intersection:
                     self.allnumvel += 1
             self.last_in_info = temp_info.idVeh
 
+            # TODO: return True when bus check-in
+
     def _bus_out_handler(self, time):
         """Summary
 
@@ -396,8 +403,10 @@ class Intersection:
         if len(self.list_of_bus_checked_out) > 10:
             self.list_of_bus_checked_out = self.list_of_bus_checked_out[-6:]
 
-        return new_bus_entered, new_state
+        # return new_bus_entered, new_state
+        # TODO: return True when bus check-out
 
+'''
     def POZ_handler(self, time, timeSta, timeTrans, acycle):
         """Summary
 
