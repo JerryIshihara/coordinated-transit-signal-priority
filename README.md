@@ -30,16 +30,12 @@ cd PYTHON_DIR
 for /l %x in (START_REP, 1, END_REP) do (python "CONTROLLER_PATH" -aconsolePath "ACONSOLE_PATH" -modelPath "MODEL_PATH" -targets %x)
 ```
 where 
-- `PYTHON_DIR`: Python 2 directory <br />
-server default: `C:\Python27`
-- `ACONSOLE_PATH`: path to Aimsun 8.3 exacutable file <br />
-server default: `C:\Program Files\Aimsun\Aimsun Next 8.3\aconsole.exe`
-- `CONTROLLER_PATH`: path to `RunSeveralReplications.py` <br />
-server default: `C:\Users\Public\Documents\ShalabyGroup\Aimsun Controller\RunSeveralReplications.py`
-- `MODEL_PATH`: path to Aimsun model <br />
-server default: `C:\Users\Public\Documents\ShalabyGroup\MODEL_NAME.ang`
-- `START_REP`, `END_REP`: start and end replication numbers <br />
-server default: 177671 to 1180580
+- `PYTHON_DIR`: Python 2 directory 
+- `ACONSOLE_PATH`: path to Aimsun 8.3 exacutable file 
+- `CONTROLLER_PATH`: path to `RunSeveralReplications.py`
+- `MODEL_PATH`: path to Aimsun model
+- `START_REP`, `END_REP`: start and end replication numbers 
+
 ## Model Set-up
 ### 1.	Time step
 Time steps are renewed upon bus check-in events (should avoid bug if more than one bus checked in at the same time. For example, Bus A checks in at time x at Intx 1, and Bus B checks in at time x at Intx 2.). 
