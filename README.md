@@ -5,13 +5,9 @@
 Coordinate Transit Signal Priority with two traffic intersections in Toronto area, improving speed and reliability with a single deep reinforcement learning agent.
 ## Usage
 ### 1. Clone the repository
-```
-git clone https://github.com/JerryIshihara/TSP-Research.git
-```
 ### 2. Load Python script to Aimsun model
   - open Aimsun Next 8.3 and load the target Aimsun model
   - double click the dynamic senerio in the project list on the right of the screen
-  <img src="/demo/dynamic_senario.png" width="500"/> <br />
   - select the `Aimsun Next APIs` tab in the pop-up window
     <img src="/demo/navBar.png" width="700"/> <br />
   - click `add` and load the file `detector.py` from the cloned repository (and inacvtive all other scripts)
