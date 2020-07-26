@@ -51,6 +51,7 @@ class Intersection:
     tToNearGreenPhase_list : list
         Description
     """
+    
     def __init__(self, CONFIG):
         """Summary
 
