@@ -1,4 +1,4 @@
-# Coordinate Transit Signal Priority (cTSP)
+# Coordinated Transit Signal Priority (cTSP)
 > Project in progress
 ## Introduction
 <img src="/demo/tsp_flow.png" width="700"/> <br />
