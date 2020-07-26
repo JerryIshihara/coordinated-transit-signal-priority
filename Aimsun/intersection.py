@@ -1,42 +1,9 @@
 """Summary
 """
 from AAPI import *
+from util import *
 from BusInPoz import *
 import csv
-
-# =============== util =====================
-
-
-def get_phase_number(total_number_of_phases, phase_number):
-    # wrap around the phases (use this to find phase after last phase or before phase 1)
-    while phase_number <= 0:
-        phase_number += total_number_of_phases
-    while phase_number > total_number_of_phases:
-        phase_number -= total_number_of_phases
-    return phase_number
-
-
-def time_to_phase_end(phase_duration, phase):
-    """Summary
-
-    Parameters
-    ----------
-    phase_duration : TYPE
-        Description
-    phase : TYPE
-        Description
-
-    Returns
-    -------
-    TYPE
-        Description
-    """
-    return sum(phase_duration[:phase]
-               ) if phase != len(phase_duration) else sum(phase_duration)
-
-
-# =============== util =====================
-
 
 class Intersection:
     """Summary
@@ -115,7 +82,65 @@ class Intersection:
         self.extend_record = {}
         self.LOG = self.CONFIG['log']
 
-    def get_toNearGreenPhase(self, currentPhase, phasetime, extended):
+    def get_state(self):
+        """Return a list containing prePOZ state and POZ state (8 slots)
+
+        based on 3 conditions: 
+        1. bus in prePOZ 
+        2. bus in POZ
+        3. no bus
+        
+        Returns
+        -------
+        list
+            a list containing prePOZ state and POZ state
+        """
+        # TODO: get the newest state information
+        prePOZ = ...
+        POZ = ...
+        return [*prePOZ, *POZ]
+
+    def apply_action(self, action):
+        """Apply the action to the intersection according to different 
+        situations (hard code for upstream)
+        
+        Parameters
+        ----------
+        action : int
+            action to the intersection
+        """
+        # TODO: change intersection phase time using action
+        None
+
+    def get_reward(self):
+        """Return the reward of the most current bus check-out event, and
+        CLEAR the reward attribute
+        
+        Returns
+        -------
+        float
+            the reward of the most current bus check-out event
+        """
+        reward, self.reward = self.reward, 0
+        return reward
+
+    def _compute_reward(self, travelTime, bus_object):
+        """Compute reward gained by a newly checked out bus
+
+        Parameters
+        ----------
+        travelTime : TYPE
+            Description
+        bus_object : TYPE
+            Description
+        """
+        d_out = abs(bus_object.check_out_headway -
+                    self.CONFIG['target_headway'])
+        d_in = abs(bus_object.check_in_headway - self.CONFIG['target_headway'])
+        improve = d_in - d_out
+        self.reward = 0.6 * improve - 0.4 * travelTime
+        
+    def _get_toNearGreenPhase(self, currentPhase, phasetime, extended):
         """Calculate the time to the nearest focus phase green signal.
 
         Parameters
@@ -140,42 +165,6 @@ class Intersection:
             return to_interest - phasetime + extended - past_phase
         return sum(self.CONFIG['phase_duration']) - phasetime + extended
 
-    def get_state(self):
-        '''return prePOZ state and POZ state (8 slots)
-
-        based on 3 conditions: 
-        1. bus in prePOZ 
-        2. bus in POZ
-        3. no bus
-        '''
-        # TODO
-        prePOZ = ...
-        POZ = ...
-        return [*prePOZ, *POZ]
-
-    def _compute_reward(self, travelTime, bus_object):
-        """Summary
-        compute reward gained by a newly checked out bus
-
-        Parameters
-        ----------
-        travelTime : TYPE
-            Description
-        bus_object : TYPE
-            Description
-
-        Returns
-        -------
-        TYPE
-            Description
-        """
-        d_out = abs(bus_object.check_out_headway -
-                    self.CONFIG['target_headway'])
-        d_in = abs(bus_object.check_in_headway - self.CONFIG['target_headway'])
-        improve = d_in - d_out
-        new_reward = 0.6 * improve - 0.4 * travelTime
-        return new_reward
-
     def _bus_enter_handler(self, time):
         """Summary
 
@@ -184,7 +173,6 @@ class Intersection:
         time : TYPE
             Description
 
-        No Longer Returned
         ------------------
         TYPE
             Description
@@ -386,7 +374,7 @@ class Intersection:
             self.last_out_info = temp_info.idVeh
 
         extended = self.red_extend + self.green_extend
-        tToNearGreenPhase = self.get_toNearGreenPhase(currentPhase, phasetime, 0)
+        tToNearGreenPhase = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
         if tToNearGreenPhase <0:
             # already in an extended green phase
             tToNearGreenPhase = 0
@@ -411,69 +399,7 @@ class Intersection:
         if len(self.list_of_bus_checked_out) > 10:
             self.list_of_bus_checked_out = self.list_of_bus_checked_out[-6:]
 
-        # return new_bus_entered, new_state
         # TODO: return True when bus check-out
 
-'''
-    def POZ_handler(self, time, timeSta, timeTrans, acycle):
-        """Summary
 
-        Parameters
-        ----------
-        time : TYPE
-            Description
-        timeSta : TYPE
-            Description
-        timeTrans : TYPE
-            Description
-        acycle : TYPE
-            Description
 
-        Returns
-        -------
-        TYPE
-            Description
-        """
-        intersection = self.CONFIG['intersection']
-        section = self.CONFIG['section']
-        # current phase time
-        phasetime = time - ECIGetStartingTimePhase(intersection)
-        currentPhase = ECIGetCurrentPhase(intersection)  # get current phase
-        if currentPhase == self.CONFIG[
-                'phase_of_interest'] + 1 and phasetime == 1:
-            self.extended = 0
-        # Check number of all vehicles in and out
-        self.allnumvel = AKIVehStateGetNbVehiclesSection(section, True)
-
-        self._bus_enter_handler(time)
-        self._bus_out_handler(time)
-
-        # check if POZ is active at decision point (end of WALK)
-        decision = self.CONFIG['AlgB_decision']
-        phase_interest = self.CONFIG['phase_of_interest']
-        phase_end = self.CONFIG['phase_duration'][phase_interest - 1]
-
-        if self.numbus > 0 and decision - 1 < phasetime < decision + 1 and currentPhase == phase_interest:
-            print("POZ active at decision point")
-            self.POZactive = 1
-
-        # check bus presence over busCallDetector and extend the phase for extended time
-        if self.numbus > 0 and self.POZactive == 1 and phasetime >= phase_end and currentPhase == phase_interest and self.extendedalready == 0:
-            if self.extended <= 14 and self.markedbusgone == 0:  # Phase 5: EB through
-                if self.markedbus == 0:
-                    self.markedbus = self.busininfo_list[0]
-                ECIChangeDirectPhase(intersection, currentPhase, timeSta, time,
-                                     acycle, phasetime - 2)
-                self.extended += 2
-                print("[{}] {} eligible for extension {}".format(
-                    intersection, self.markedbus, self.extended))
-                self.extend_record[self.markedbus] = self.extended
-            else:
-                self.extendedalready = 1
-
-        if currentPhase != phase_interest:
-            self.markedbusgone = 0
-            self.extendedalready = 0
-            self.POZactive = 0
-
-        return 0
