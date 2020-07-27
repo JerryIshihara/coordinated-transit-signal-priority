@@ -1,8 +1,8 @@
 """Summary
 """
 from AAPI import *
-from util import *
 from BusInPoz import *
+import util
 import csv
 
 class Intersection:
@@ -11,14 +11,10 @@ class Intersection:
     Attributes
     ----------
     allnumvel : int
-        Description
-    bunch_list : list
+        total number of vehicles in POZ
+    bus_list : list
         Description
     busin_info : int
-        Description
-    busininfo_list : list
-        Description
-    busintime_list : list
         Description
     CONFIG : TYPE
         Description
@@ -62,14 +58,10 @@ class Intersection:
         self.CONFIG = CONFIG
         self.cycled_bus = 0
         self.total_bus = 0
-        self.bunch_list = []
+        self.bus_list = [] # list of bus in POZ
+        self.bus_list =
         self.in_bus = []
-        self.in_list = [0]
-        self.out_list = [0]
-        self.tToNearGreenPhase_list = []
         self.extended = 0
-        self.busintime_list = []
-        self.busininfo_list = []
         self.numbus = 0
         self.allnumvel = 0
         self.last_in_info = -99
@@ -77,7 +69,7 @@ class Intersection:
         self.extendedalready = 0  # extended or not in current cycle
         self.markedbus = 0  # if a bus is marked as indicator
         self.markedbusgone = 0  # if a marked bus had exited
-        self.busin_info = 0
+        self.reward = 0
         self.replicationID = None
         self.extend_record = {}
         self.LOG = self.CONFIG['log']
@@ -158,9 +150,9 @@ class Intersection:
             the time to the nearest focus phase green signal
         """
         if currentPhase <= self.CONFIG['phase_of_interest']:
-            to_interest = time_to_phase_end(self.CONFIG['phase_duration'],
+            to_interest = util.time_to_phase_end(self.CONFIG['phase_duration'],
                                             self.CONFIG['phase_of_interest'])
-            past_phase = time_to_phase_end(self.CONFIG['phase_duration'],
+            past_phase = util.time_to_phase_end(self.CONFIG['phase_duration'],
                                            currentPhase - 1)
             return to_interest - phasetime + extended - past_phase
         return sum(self.CONFIG['phase_duration']) - phasetime + extended
@@ -194,10 +186,7 @@ class Intersection:
         # get current phase
         currentPhase = ECIGetCurrentPhase(intersection)
         # find phase before and after phase of interest
-        phase_after_phase_of_interest = get_phase_number(
-            total_phases, phase_of_interest + 1)
-        phase_before_phase_of_interest = get_phase_number(
-            total_phases, phase_of_interest - 1)
+        phase_after_phase_of_interest = util.get_phase_number(total_phases, phase_of_interest + 1)
         # green phase ended and the buses that are still in POZ becomes cycled buses
         if currentPhase == phase_after_phase_of_interest and phasetime == 0:
             self.cycled_bus = self.numbus
@@ -208,13 +197,7 @@ class Intersection:
                 phase_of_interest,
                 self.CONFIG['phase_duration'][phase_of_interest - 1], 
                 timeSta)
-        # if currentPhase != 4 and (self.numbus - self.cycled_bus == 0):
-        #     self.red_extend = 0
-        #     ECIChangeTimingPhase(
-        #         intersection, 
-        #         phase_before_phase_of_interest,
-        #         self.CONFIG['phase_duration'][phase_before_phase_of_interest -1],
-        #         timeSta)
+
         # Check number of all vehicles in and out
         self.allnumvel = AKIVehStateGetNbVehiclesSection(section, True)
         # bus enter check
