@@ -29,6 +29,29 @@ def get_phase_number(total_number_of_phases, phase_number):
     return phase_number
 
 
+class Bus_in_POZ:
+    def __init__(self, intersection, check_in_bus_info, check_in_phase, check_in_phasetime, check_in_time, last_check_in=0):
+        self.intersection_of_interest = intersection
+        self.bus_id = check_in_bus_info.idVeh
+        self.check_in_time = check_in_time
+        self.check_in_phase = check_in_phase
+        self.check_in_phasetime = check_in_phasetime
+
+        self.check_in_headway = check_in_time - last_check_in
+
+        self.check_out_time = -1
+        self.check_out_headway = -1
+
+        self.last_update_time = check_in_time
+
+    def check_out(self, check_out_time, last_check_out=0):
+        self.check_out_time = check_out_time
+        self.check_out_headway = last_check_out - check_out_time
+
+
+        self.last_update_time = check_out_time
+
+
 class Intersection:
     def __init__(self, CONFIG):
         self.CONFIG = CONFIG
@@ -54,17 +77,48 @@ class Intersection:
         self.remain = 0
         self.replicationID = None
         
-        self.busintime_list = [0, 0]
-        self.busoutime_list = [0, 0]
+        # self.busintime_list = [0, 0]
+        # self.busoutime_list = [0, 0]
 
         self.states = []
-        self.tToNearGreenPhase_list = []
-        self.allnumvel_list = []
-        self.check_in_hdy_L = []
-        self.check_in_phase_no_L = []
-        self.check_in_phaseTime_L = []
+        # self.tToNearGreenPhase_list = []
+        # self.allnumvel_list = []
+        # self.check_in_hdy_L = []
+        # self.check_in_phase_no_L = []
+        # self.check_in_phaseTime_L = []
+
+        self.list_of_bus_in_POZ = []
+        self.list_of_bus_checked_out = []
+        self.cumulative_reward = 0  # track reward generated between check-in
+
+    def checkout_bus_from_POZ(self, checkout_id, checkout_time):
+        # remove bus with corresponding id from POZ and return the bus
+        for bus in self.list_of_bus_in_POZ:
+            if bus.bus_id == checkout_id:
+                if self.list_of_bus_checked_out:
+                    last_checkout_time = self.list_of_bus_checked_out[-1].check_out_time
+                else:
+                    # if there is no previous bus, assume checkout headway is perfect
+                    last_checkout_time = checkout_time - self.CONFIG['target_headway']
+                bus.check_out(checkout_time, last_checkout_time)
+                self.list_of_bus_in_POZ.remove(bus)
+                return bus
+        return False
+
+
+    def compute_reward(self, travelTime, bus_object):
+        """Summary
+        compute reward gained by a newly checked out bus
+        """
+        d_out = abs(bus_object.check_out_headway-self.CONFIG['target_headway'])
+        d_in = abs(bus_object.check_in_headway-self.CONFIG['target_headway'])
+        improve = d_in-d_out
+        new_reward = 0.6 * improve - 0.4 * travelTime
+        return new_reward
+
 
     def log_parameter_file(self, bus_info, phasetime):
+        ### TODO: finish implement this function using the bus objects
         ############## for log purpose ###############
         replicationID = ANGConnGetReplicationId()
         vehicleID = bus_info.idVeh
@@ -83,17 +137,6 @@ class Intersection:
         # >>>>>>>>>>>>>>>>> parameter log file <<<<<<<<<<<<<<<<<
         parameter_log_file = self.CONFIG['log']
         # >>>>>>>>>>>>>>>>> reward <<<<<<<<<<<<<<<
-        # reward
-        # Travel time
-
-        # reward = []
-        # while len(reward) == 0:
-        #     try:
-        #         f = open(Temp_Reward, "r")
-        #         reward = float(f.read())
-        #         f.close()
-        #     except:
-        #         continue
 
         check_out_hdy = busoutime_list[-1] - busoutime_list[-2]
         travelTime = busoutime_list[-1] - busintime_list[2]
@@ -140,17 +183,6 @@ class Intersection:
         phase_of_interest = self.CONFIG['phase_of_interest']
         total_phases = len(self.CONFIG['phase_duration']) # assumption for this is that all phases has duration defined
 
-        tToNearGreenPhase_list = self.tToNearGreenPhase_list
-        allnumvel_list = self.allnumvel_list
-
-        # >>>>>>>>>>>>>>>>> check in info <<<<<<<<<<<<<
-        busintime_list = self.busintime_list
-        check_in_hdy_L = self.check_in_hdy_L
-        check_in_phase_no_L = self.check_in_phase_no_L
-        check_in_phaseTime_L = self.check_in_phaseTime_L
-        # >>>>>>>>>>>>>>>>> check out info <<<<<<<<<<<<<
-        busoutime_list = self.busoutime_list
-
         tt_target = 0
         tToNearGreenPhase = 0  # time (>0) to the end of the nearest green phase
 
@@ -181,6 +213,10 @@ class Intersection:
         # bus enter check
         enterNum = AKIDetGetCounterCyclebyId(busCallDetector,
                                              busVehiclePosition)  # Number of entering bus(es) in last step
+
+        new_state = []
+        new_bus_entered = False
+
         if enterNum > 0:
             self.cycled_bus = 0
             self.total_bus += 1
@@ -218,43 +254,31 @@ class Intersection:
                     # Skip first vehicle and loop
                     continue
                 else:
+                    new_bus_entered = True
+                    if self.list_of_bus_in_POZ:
+                        last_check_in_time = self.list_of_bus_in_POZ[-1].check_in_time
+                    else:
+                        last_check_in_time = time - target_headway # for the first bus, assume that the check in headway is perfect
+                    self.list_of_bus_in_POZ.append(Bus_in_POZ(intersection, busin_info, currentPhase, phasetime, time, last_check_in=last_check_in_time))
                     self.numbus += 1
                     self.allnumvel += 1
 
-                    # log info
-                    busintime_list.append(time)
-                    check_in_hdy_L.append(busintime_list[-1] - busintime_list[-2])
-                    check_in_phase_no_L.append(currentPhase)
-                    check_in_phaseTime_L.append(phasetime)
-
-                    extended = self.red_extend + self.green_extend
-                    tToNearGreenPhase = self.get_toNearGreenPhase(currentPhase, phasetime, extended)
-
-                    if self.numbus > 1:
-                        tToNearGreenPhase_list.append(tToNearGreenPhase)
-                        allnumvel_list.append(self.allnumvel)
-
-                    if self.numbus == 1:
-                        tt_target = busoutime_list[-1] - busintime_list[-1]
-
-                        # Update states
-                        self.updated = -self.updated
-                        output = [tt_target, tToNearGreenPhase, self.allnumvel, busoutime_list[-2], busoutime_list[-1],
-                                  busoutime_list[-1] - busintime_list[-2], self.remain, busintime_list[-3],
-                                  busintime_list[-2], self.updated]
-
-                        # output to DQN
-                        print("Output: {}".format(output))
-                        f = open(TransferToDQN, "w+")
-                        for j in output:
-                            f.write("%f " % j)
-                        f.close()
-
-                        # log states
-                        self.states.append([tt_target, tToNearGreenPhase, self.allnumvel])
-
-                        # Extend the phase for extended time
-                        extend_green_phase(time, timeSta, currentPhase, phasetime, False, self)
+                    # !!! do not write to DQN until afterwards
+                    # if self.numbus == 1:
+                    #     tt_target = busoutime_list[-1] - busintime_list[-1]
+                    #
+                    #     # Update states
+                    #     self.updated = -self.updated
+                    #     output = [tt_target, tToNearGreenPhase, self.allnumvel, busoutime_list[-2], busoutime_list[-1],
+                    #               busoutime_list[-1] - busintime_list[-2], self.remain, busintime_list[-3],
+                    #               busintime_list[-2], self.updated]
+                    #
+                    #
+                    #     # log states
+                    #     self.states.append([tt_target, tToNearGreenPhase, self.allnumvel])
+                    #
+                    #     # Extend the phase for extended time
+                    #     # extend_green_phase(time, timeSta, currentPhase, phasetime, False, self)
 
             self.last_in_info = temp_info.idVeh
 
@@ -279,11 +303,13 @@ class Intersection:
                     self.numbus -= 1
                     self.allnumvel -= 1
                     print("Bus banching %d" % self.numbus)
+                    checkout_id = busout_info.idVeh
+                    checked_out_bus = checkout_bus_from_POZ(checkout_id, time)
+                    self.list_of_bus_checked_out.append(checked_out_bus)
 
-                    busoutime_list.append(time)
-
-                    travelTime = busoutime_list[-1] - busintime_list[-2] if self.numbus >= 1 else busoutime_list[-1] - \
-                                                                                             busintime_list[-1]
+                    if checked_out_bus is False:
+                        print("Cannot found the bus {} in POZ".format(checkout_id))
+                    travelTime = checked_out_bus.check_out_time - checked_out_bus.check_in_time
 
                     ##### log #########
                     self.log_parameter_file(busout_info, phasetime)
@@ -293,43 +319,77 @@ class Intersection:
                     print("green_extend: {}".format(self.green_extend))
                     print("Green phase remaining at exit: {}".format(self.remain))
 
-                    if self.numbus >= 1:
-                        tt_target = busoutime_list[-1] - busintime_list[-1]
+                    reward_gained = compute_reward(travelTime, checked_out_bus)
+                    self.cumulative_reward += reward_gained
+                    print("Reward gained at checked out: {}".format(reward_gained))
 
-                        # Update states
-                        self.updated = -self.updated
-                        output = [tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1, busoutime_list[-2],
-                                  busoutime_list[-1],
-                                  busoutime_list[-1] - busintime_list[-2], self.remain, busintime_list[-3],
-                                  busintime_list[-2], self.updated]
-                        print("Output: {}".format(output))
-                        f = open(TransferToDQN, "w+")
-                        for j in output:
-                            f.write("%f " % j)
-                        f.close()
-
-                        # log states
-                        self.states.append([tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1])
-
-                        tToNearGreenPhase_list.pop(0)
-                        allnumvel_list.pop(0)
+                    # !!! do not write to DQN for check out
+                    # if self.numbus >= 1:
+                    #     # tt_target = busoutime_list[-1] - busintime_list[-1]
+                    #
+                    #     # # Update states
+                    #     # self.updated = -self.updated
+                    #     # output = [tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1, busoutime_list[-2],
+                    #     #           busoutime_list[-1],
+                    #     #           busoutime_list[-1] - busintime_list[-2], self.remain, busintime_list[-3],
+                    #     #           busintime_list[-2], self.updated]
+                    #
+                    #
+                    #
+                    #
+                    #
+                    #     # # log states
+                    #     # self.states.append([tt_target, tToNearGreenPhase_list[0], allnumvel_list[0] - 1])
+                    #
+                    #     tToNearGreenPhase_list.pop(0)
+                    #     allnumvel_list.pop(0)
 
                         # extend green phase
-                        extend_green_phase(time, timeSta, currentPhase, phasetime, True, self)
+                        # extend_green_phase(time, timeSta, currentPhase, phasetime, True, self)
 
             self.last_out_info = temp_info.idVeh
 
-        if len(busoutime_list) > 10 and len(busintime_list) > 10:
-            self.busoutime_list = busoutime_list[6:]
-            self.busintime_list = busintime_list[6:]
+        extended = self.red_extend + self.green_extend
+        tToNearGreenPhase = self.get_toNearGreenPhase(currentPhase, phasetime, 0)
+        if tToNearGreenPhase <0:
+            # already in an extended green phase
+            tToNearGreenPhase = 0
 
-        return 0
+        if self.numbus>0:
+            # last available checkout for this intersection
+            if self.numbus > 1:
+                # bunch, use current time as last checkout
+                last_available_checkout_time = time
+            elif len(self.list_of_bus_checked_out) == 0:
+                # first bus
+                last_available_checkout_time = time - self.CONFIG['target_headway']
+            else:
+                last_available_checkout_time = self.list_of_bus_checked_out[-1].check_out_time
+            # check in time of the last bus checked in
+            last_check_in_time = self.list_of_bus_in_POZ[-1].check_in_time
+            check_in_hdy = self.list_of_bus_in_POZ[-1].check_in_headway
+            new_state = [last_available_checkout_time, last_check_in_time, check_in_hdy, self.numbus, self.allnumvel, tToNearGreenPhase]
+        else:
+            new_state = [0, 0, 0, 0, 0, 0]
+
+        if len(self.list_of_bus_checked_out) > 10:
+            self.list_of_bus_checked_out = self.list_of_bus_checked_out[-6:]
+
+        return new_bus_entered, new_state
 
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
+    # This could be handled by a corridor but i am testing with one intersection first
     global intx_1
+    # global intx_2
+    new_time_step_1, new_state_1 = intx_1.AAPIPostManage(time, timeSta, timeTrans, acycle)
+    if new_time_step_1:
+        reward_1 = intx_1.cumulative_reward
+        intx_1.cumulative_reward = 0
+        #TODO: write the new state and reward calculated to DQN
 
-    intx_1.AAPIPostManage(time, timeSta, timeTrans, acycle)
+
+
     return 0
 
 
@@ -346,23 +406,9 @@ def AAPILoad():
     #create intersection object
 
     global intx_1
+    # global intx_2
     intx_1 = Intersection(INTERSECTION_1)
-
-    ########################## for log purpose #######################
-    # replicationID (exit)
-    # vehicleID (exit)
-    # >>>>>>>>>>>>>>>>> state <<<<<<<<<<<<<<<
-    # global states
-    #
-    # states = []
-
-    # global action
-    # global red_extend  # duration (sec) of green phase extension or reduction
-    # global green_extend
-    # global remain
-    # action = 0
-    # red_extend, green_extend = 0, 0
-    # remain = 0
+    # intx_2 = Intersection(INTERSECTION_2)
 
     return 0
 
@@ -398,7 +444,8 @@ def AAPIManage(time, timeSta, timeTrans, acycle):
     return 0    
 
 
-def extend_green_phase(time, timeSta, currentPhase, phasetime, two_bus_poz, intx):
+def extend_green_phase(time, timeSta, currentPhase, phasetime, two_bus_poz, intx, action_index=(0,1)):
+
     intersection = intx.CONFIG['intersection']
     phase_of_interest = intx.CONFIG['phase_of_interest']
     total_phases = len(intx.CONFIG['phase_duration'])
@@ -415,8 +462,8 @@ def extend_green_phase(time, timeSta, currentPhase, phasetime, two_bus_poz, intx
             continue
 
         if len(input_fromDQN) != 0 and int(input_fromDQN[-1]) != intx.last_input_flag:
-            red_green = int(input_fromDQN[0])
-            duration = int(input_fromDQN[1])
+            red_green = int(input_fromDQN[action_index[0]])
+            duration = int(input_fromDQN[action_index[1]])
             if red_green == -1:
                 intx.red_extend += duration
                 

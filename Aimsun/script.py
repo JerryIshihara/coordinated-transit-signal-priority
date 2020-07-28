@@ -4,16 +4,15 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir) 
 from config import *
 from intersection import *
+from corridor import *
 
 
 def AAPILoad():
     """
     Create Intersection objects. Called when the module is loaded by Aimsum Next
     """
-    global intx_1
-    global intx_2
-    intx_1 = Intersection(INTERSECTION_1)
-    intx_2 = Intersection(INTERSECTION_2)
+    global intersections
+    intersections = Corridor(CORRIDOR)
     return 0
 
 
@@ -60,12 +59,8 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
     acycle : double
         Duration of each simulation step in seconds
     """
-    global intx_1
-    global intx_2
-
-    intx_1.POZ_handler(time, timeSta, timeTrans, acycle)
-    intx_2.POZ_handler(time, timeSta, timeTrans, acycle)
-
+    global intersections
+    corridor.aapi_post_manage(time, timeSta, timeTrans, acycle)
     return 0
 
 
