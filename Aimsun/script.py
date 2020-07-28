@@ -7,12 +7,8 @@ from intersection import *
 
 
 def AAPILoad():
-    """Summary
-
-    Returns
-    -------
-    TYPE
-        Description
+    """
+    Create Intersection objects. Called when the module is loaded by Aimsum Next
     """
     global intx_1
     global intx_2
@@ -23,11 +19,7 @@ def AAPILoad():
 
 def AAPIInit():
     """Summary
-
-    Returns
-    -------
-    TYPE
-        Description
+    Initializes the module. Called when Aimsum Next starts the simulation
     """
     ANGConnEnableVehiclesInBatch(True)
     return 0
@@ -35,44 +27,38 @@ def AAPIInit():
 
 def AAPIManage(time, timeSta, timeTrans, acycle):
     """Summary
-
+       Called in every simulation step at the beginning of the cycle, and can be used to update states 
+       and output states to DQN, and implement TSP stategies
+    
     Parameters
     ----------
-    time : TYPE
-        Description
-    timeSta : TYPE
-        Description
-    timeTrans : TYPE
-        Description
-    acycle : TYPE
-        Description
-
-    Returns
-    -------
-    TYPE
-        Description
+    time : double
+        Absolute time of simulation in seconds
+    timeSta : double
+        Time of simulation in stationary period, in seconds
+    timeTrans : double
+        Duration of warm-up period, in seconds
+    acycle : double
+        Duration of each simulation step in seconds
     """
     return 0
 
 
 def AAPIPostManage(time, timeSta, timeTrans, acycle):
     """Summary
-
+    Called in every simulation step at the beginning of the cycle, and can be used to update states 
+    and output states to DQN, and implement TSP stategies
+       
     Parameters
     ----------
-    time : TYPE
-        Description
-    timeSta : TYPE
-        Description
-    timeTrans : TYPE
-        Description
-    acycle : TYPE
-        Description
-
-    Returns
-    -------
-    TYPE
-        Description
+    time : double
+        Absolute time of simulation in seconds
+    timeSta : double
+        Time of simulation in stationary period, in seconds
+    timeTrans : double
+        Duration of warm-up period, in seconds
+    acycle : double
+        Duration of each simulation step in seconds
     """
     global intx_1
     global intx_2
@@ -85,21 +71,14 @@ def AAPIPostManage(time, timeSta, timeTrans, acycle):
 
 def AAPIFinish():
     """Summary
-
-    Returns
-    -------
-    TYPE
-        Description
+    Called when Aimsun Next finishes the simulation and can be used to terminate the module operations, 
+    write summary information, close files, etc.
     """
     return 0
 
 
 def AAPIUnLoad():
     """Summary
-
-    Returns
-    -------
-    TYPE
-        Description
+    Called when the module is unloaded by Aimsun Next.
     """
     return 0
