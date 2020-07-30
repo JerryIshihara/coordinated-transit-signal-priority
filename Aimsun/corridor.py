@@ -93,12 +93,11 @@ class Corridor:
             self.joint_state = ([*self.intx_1.get_state(), 
                                  *self.intx_2.get_state()],
                                  uuid4().int)
-            # 2. send new state and previous reward to DQN and clear reward
-            #    no need to clear state since get_state() function is synchronous 
-            #    to Aimsun
-
-            # use get_reward() function to fetch cumulative reward in each intersection since last timestep
-            # clear the stored reward internally
+            # 2. - send new state and previous reward to DQN and clear reward
+            #      no need to clear state since get_state() function is synchronous 
+            #      to Aimsun
+            #    - use get_reward() function to fetch cumulative reward in each intersection 
+            #      since last timestep clear the stored reward internally
             r_1 = self.intx_1.get_reward()
             r_2 = self.intx_2.get_reward()
             # cumulative reward between time step t and t + 1
@@ -111,8 +110,6 @@ class Corridor:
         # 4. check-out event
         self.intx_1._bus_out_handler(time, timeSta)
         self.intx_2._bus_out_handler(time, timeSta)
-
-
         return 0
 
 
