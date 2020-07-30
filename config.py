@@ -23,9 +23,8 @@ LOG_PATH = CWD + 'log_files/'
 STATE = LOG_PATH + 'state.txt'
 ACTION = LOG_PATH + 'action.txt'
 REWARD = LOG_PATH + 'reward.txt'
-REWARD_LOG = LOG_PATH + 'reward_log.csv'
+REWARD_CSV = LOG_PATH + 'reward_log.csv'
 PARAMETER_LOG = LOG_PATH + 'parameter_log.csv'
-# Scenario_End = LOG_PATH + 'Scenario_End.txt'
 Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
 
 INTERSECTION_1 = {

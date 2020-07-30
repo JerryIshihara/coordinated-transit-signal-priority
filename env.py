@@ -27,9 +27,10 @@ class Environment():
         """
         self.env_name = name
         self.action_space = action_space
-        self.STATE_LOG = STATE
-        self.ACTION_LOG = ACTION
-        self.REWARD_LOG = REWARD
+        self.STATE_LOG = STATE # temp state
+        self.ACTION_LOG = ACTION # temp action
+        self.REWARD_LOG = REWARD # temp reward
+        self.REWARD_CSV = REWARD_CSV # rewards of all steps
 
     def step(self, action_index):
         """
