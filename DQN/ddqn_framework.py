@@ -456,13 +456,13 @@ class trainer:
 
 
             # apply action
-            next_state, reward, done, senario_end = self.env.step(action)
+            next_state, reward, done = self.env.step(action)
             # normalization
             next_state = self.normalize_state(next_state)
             print("normalized: {}, {}, {}".format(next_state[0][0], next_state[0][1], next_state[0][2]))
 
             # end training when simulation ends
-            if senario_end:
+            if done:
                 break
 
 

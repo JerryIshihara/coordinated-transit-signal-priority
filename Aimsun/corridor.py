@@ -1,4 +1,4 @@
-"""Summary
+"""Aimsun Corridor
 """
 from intersection import Intersection
 from uuid import uuid4
