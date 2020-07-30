@@ -20,8 +20,7 @@ class Corridor:
         Description
     joint_state : TYPE
         Description
-    reward : TYPE
-        Description
+
     """
     
     def __init__(self, intersections):
@@ -34,17 +33,19 @@ class Corridor:
         """
         self.intx_1 = Intersection(intersections[0])
         self.intx_2 = Intersection(intersections[1])
+
+        self.intx_1.set_downstream_intersection(self.intx_2)
+
         self.joint_state = ([], uuid4().int) # ([joint state], flag)
-        self.reward = (0, uuid4().int) # (global reward, flag)
         self.action_flag = 0
 
-    def _write_state_reward(self):
+    def _write_state_reward(self, reward):
         """Send joint state and reward to DQN
         """
         # TODO: write states and cumulative reward to file
         #       STATE and REWARD
 
-        self.reward = (0, uuid4().int) # clear reward
+        # output (reward, uuid4().int)
 
     def _read_action(self):
         """Read and return the actions from DQN
@@ -86,29 +87,29 @@ class Corridor:
             0 indicates successful function call to Aimsun Next
         """
         # 1. check-in event
-        if (self.intx_1._bus_enter_handler(time) or 
-        	self.intx_2._bus_enter_handler(time)):
+        if (self.intx_1._bus_enter_handler(time, timeSta) or
+        	self.intx_2._bus_enter_handler(time, timeSta)):
             # update states based on each intersection
             self.joint_state = ([*self.intx_1.get_state(), 
                                  *self.intx_2.get_state()],
                                  uuid4().int)
-            # 2. send new state and previous reward to DQN and clear reward
-            #    no need to clear state since get_state() function is synchronous 
-            #    to Aimsun
-            self._write_state_reward()
+            # 2. - send new state and previous reward to DQN and clear reward
+            #      no need to clear state since get_state() function is synchronous 
+            #      to Aimsun
+            #    - use get_reward() function to fetch cumulative reward in each intersection 
+            #      since last timestep clear the stored reward internally
+            r_1 = self.intx_1.get_reward()
+            r_2 = self.intx_2.get_reward()
+            # cumulative reward between time step t and t + 1
+            total_reward = r_1 + r_2
+            self._write_state_reward(total_reward)
             # 3. apply action
             action1, action2 = self._read_action()
             self.intx_1.apply_action(action1)
             self.intx_2.apply_action(action2)
         # 4. check-out event
-        if (self.intx_1._bus_out_handler(time) or 
-            self.intx_2._bus_out_handler(time)):
-            # get_reward() function outputs the last checkout bus reward and then
-            # clear the stored reward internally
-            r_1 = self.intx_1.get_reward()
-            r_2 = self.intx_2.get_reward()
-            # cumulative reward between time step t and t + 1
-            self.reward += r_1 + r_2
+        self.intx_1._bus_out_handler(time, timeSta)
+        self.intx_2._bus_out_handler(time, timeSta)
         return 0
 
 
