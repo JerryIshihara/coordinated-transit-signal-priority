@@ -1,5 +1,6 @@
 # Coordinated Transit Signal Priority (cTSP)
-<img src='https://img.shields.io/badge/project-in progress-yellow'>
+<img src='https://img.shields.io/badge/project-in progress-yellow' />
+
 ## Introduction
 <img src="/demo/tsp_flow.png" width="700"/> <br />
 Coordinate Transit Signal Priority with two traffic intersections in Toronto area, improving speed and reliability with a single deep reinforcement learning agent.
