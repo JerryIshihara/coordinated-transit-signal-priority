@@ -42,11 +42,27 @@ class Corridor:
     def _write_state_reward(self, reward):
         """Send joint state and reward to DQN
         """
-        # TODO: write states and cumulative reward to file
-        #       STATE and REWARD
-
-        # output (reward, uuid4().int)
-
+        is_reward_written = False
+        while not is_reward_written:
+            try:
+                f = open(STATE, "w+")
+                f.write("{} {}".format(reward, uuid().int))
+                f.close()
+                is_reward_written = True
+            except:
+                continue
+        
+        is_state_written = False
+        while not is_state_written:
+            try:
+                joint_state_str = " ".join(joint_state[0])
+                f = open(STATE, "w+")
+                f.write("{} {}".format(joint_state_str, joint_state[1])
+                f.close()
+                is_state_written = True
+            except:
+                continue
+        
     def _read_action(self):
         """Read and return the actions from DQN
         
@@ -58,11 +74,15 @@ class Corridor:
         flag = self.action_flag
         while flag == self.action_flag
             try:
-                # TODO: read ACTION file and update flag
-                #       file content format: 'action1 action2 flag'
-                action1 = ...
-                action2 = ...
-                self.action_flag = ... # new flag read from file
+                f = open(self.ACTION, "r")
+                data = f.read()
+                f.close()
+                data = data.split()
+                if len(data) != 3: 
+                    continue
+                action1 = int(data[0])
+                action2 = int(data[1])
+                self.action_flag = int(data[2]) # new flag read from file
             except:
                 continue
         return action1, action2
