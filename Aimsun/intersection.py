@@ -10,44 +10,53 @@ class Intersection:
 
     Attributes
     ----------
-    allnumvel : int
-        total number of vehicles in POZ
+    CONFIG : dict
+        configuration of the intersection, see config.py
+    cycled_bus : int
+        bus that checked in at the previous cycle (a cycle start at phase of interest and end before the next phase of interest)
+    total_bus : int
+        total number of bus enetered this intersection (used to determine the first & last checked in bus in training)
     bus_list : list
-        Description
-    busin_info : int
-        Description
-    CONFIG : TYPE
-        Description
-    extend_record : dict
-        Description
+        list of bus object CURRENTLY in the intersection （has not checked out yet)
+        arranged by check in time, with the newest bus at the end of the list
+    last_checkout_bus : BusInPOZ object
+        the latest bus that checked out of the intersection, initialized as None before the first bus checkout event
     extended : int
-        Description
+        Registered action that is applied on this intersection
     extendedalready : int
-        Description
-    in_bus : list
-        Description
-    in_list : list
-        Description
-    last_in_info : int
-        Description
-    last_out_info : int
-        Description
-    LOG : TYPE
-        Description
-    markedbus : int
-        Description
-    markedbusgone : int
-        Description
+        0 or 1, 0 means no change has been made to the intersection signal length
     numbus : int
-        Description
-    out_list : list
-        Description
-    POZactive : int
-        Description
-    tToNearGreenPhase_list : list
-        Description
+        Number of bus CURRENTLY in the intersection POZ
+    allnumvel : int
+        Number of bus + cars currently in the intersection POZ
+    last_in_info : int
+        The bus id of the bus which initiated the last check in event (used to avoid repeated check in event)
+    last_out_info : int
+        The bus id of the bus which initiated the last check out event (used to avoid repeated check out event)
+    markedbus : int
+        not used yet
+    markedbusgone : int
+        not used yet
+    reward : int
+        cumulative reward collected in check out events after the last check in event
+    replicationID : int
+        Aimsun replication ID for the current simulation
+    downstream_intersection : Intersection object
+        pointer to the downstream intersection
+    prePOZ_numbus : int
+        (initialized to None to indicate no upstream intersection exist to the current intersection)
+        number of bus in prePOZ of the current intersection, this number should only be increased by the intersection before
+        this intersection
+    prePOZ_bus_checkout_time_dict : dict
+        dict with bus id as keys and bus checkout time as values. This shows all bus in prePOZ of the current intersection
+        This dict is only valid IF there is a detector/intersection before the current intersection
+    state ： list with 6 elements
+        infomation about the bus and vehicles INSIDE POZ (not including prePOZ)
+        [last_available_checkout_time, last_check_in_time, check_in_headway,
+        number of buses in POZ, number of cars + buses in POZ, time To Nearest Green]
+
     """
-    
+
     def __init__(self, CONFIG):
         """Summary
 
@@ -61,18 +70,17 @@ class Intersection:
         self.total_bus = 0
         self.bus_list = [] # list of bus in POZ
         self.last_checkout_bus = None
-        self.extended = 0
+        self.extended = 0 # registered action
         self.numbus = 0
         self.allnumvel = 0
         self.last_in_info = -99 # bus id for last checked in bus
         self.last_out_info = -99
         self.extendedalready = 0  # extended or not in current cycle
-        self.markedbus = 0  # if a bus is marked as indicator
-        self.markedbusgone = 0  # if a marked bus had exited
+        # self.markedbus = 0  # if a bus is marked as indicator
+        # self.markedbusgone = 0  # if a marked bus had exited
         self.reward = 0  # cumulative reward
         self.replicationID = None
-        self.extend_record = {}
-        self.LOG = self.CONFIG['log']
+        # self.extend_record = {}
         self.downstream_intersection = None
 
         # number of bus in prePOZ will produce error if a bus enters POZ without being recorded in prePOZ (aka checkout from last intersection)
@@ -161,24 +169,59 @@ class Intersection:
         Parameters
         ----------
         action : int
-            action to the intersection
+            action to the intersection (extend/shorten this amount)
+        time : int
+            Absolute time of simulation in seconds
+        timeSta : int
+            Time of simulation in stationary period, in sec
         """
-        # TODO: change intersection phase time using action
+
+        if self.numbus == 0 and self.prePOZ_numbus is None:
+            # this means this is the upstream intersection AND there is no bus here
+            # ^^^ this is hardcoded for now, in the future each intersection should has a pointer to its previous
+            #       intersection and check that if there is no bus in all upstream intersections and current
+            #       intersection, force the action to be zero
+            action = 0
         intersection = self.CONFIG['intersection']
         phase_of_interest = self.CONFIG['phase_of_interest']
         total_phases = len(self.CONFIG['phase_duration'])
         green_duration = self.CONFIG['phase_duration'][phase_of_interest - 1]
+
+        # TODO: changing the intersection time might not be legal! need to handle this
         ECIChangeTimingPhase(intersection, phase_of_interest, green_duration + action, timeSta)
+        if action != 0:
+            self.extendedalready = 1
+        self.extended = action
 
         print("------- Extend start here ----------")
         print("Extended at time: {}".format(time))
         print("Extended length: " + str(action) + " sec")
 
-        pass
+    def log_parameter_file(self, bus_info, phasetime):
+        # TODO: finish this, need to collect all data that needed to be logged and write into the logfile
+        replicationID = ANGConnGetReplicationId()
+        vehicleID = bus_info.idVeh
+        this_states = self.get_state
 
-    def log_parameter_file(self, busout_info, phasetime):
-        #TODO: implement log file
-        pass
+        target_headway = self.CONFIG['target_headway']
+
+        parameter_log_file = self.CONFIG['log']
+        reward = self.reward
+
+        check_out_hdy = self.last_checkout_bus.check_out_headway
+        travelTime = self.last_checkout_bus.check_out_time - self.last_checkout_bus.check_in_time
+        currentPhase = ECIGetCurrentPhase(self.CONFIG['intersection'])  # get current phase
+        # the same cycle
+        # output = [replicationID, vehicleID, *this_states, busintime_list[2], check_in_hdy_L[0],
+        #           check_in_hdy_L[0] - target_headway, check_in_phase_no_L[0],
+        #           check_in_phaseTime_L[0],
+        #           busoutime_list[-1], check_out_hdy, check_out_hdy - target_headway, phasetime,
+        #           self.action, self.remain, travelTime, currentPhase]
+
+        with open(parameter_log_file, "a+") as out:  # Log key parameters
+            csv_write = csv.writer(out, dialect='excel')
+            # csv_write.writerow(output)
+
 
     def get_reward(self):
         """Return the reward of the most current bus check-out event, and
@@ -270,6 +313,7 @@ class Intersection:
         # green phase ended and the buses that are still in POZ becomes cycled buses
         if currentPhase == phase_after_phase_of_interest and phasetime == 0:
             self.cycled_bus = self.numbus
+            self.extendedalready = 0 # clear the extended already flag
         if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
             self.green_extend = 0
             ECIChangeTimingPhase(
@@ -334,6 +378,11 @@ class Intersection:
                             print("prePOZ has no bus when a check in event happened, check if upstream intersection "
                                   "is set correctly")
 
+                    ##### log ########
+                    # TODO: implement log function
+                    # self.log_parameter_file(busin_info, phasetime)
+                    ###### log #######
+
             self.last_in_info = temp_info.idVeh
 
         # update state
@@ -359,11 +408,11 @@ class Intersection:
         None
 
         """
-        # compute new state
+        # compute new state without registered action
         tToNearGreenPhase = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
         if tToNearGreenPhase < 0:
             # already in an extended green phase
-            tToNearGreenPhase = 0
+            tToNearGreenPhase = 0  # the green can end immediately
 
         if self.numbus > 0:
             # last available checkout for this intersection
@@ -468,8 +517,8 @@ class Intersection:
                     travelTime = successfully_checked_out_bus.check_out_time - successfully_checked_out_bus.check_in_time
 
                     ##### log ########
-                    #TODO: implement log function
-                    self.log_parameter_file(busout_info, phasetime)
+                    # TODO: implement log function
+                    # self.log_parameter_file(busout_info, phasetime)
                     ###### log #######
 
 
