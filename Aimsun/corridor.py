@@ -105,8 +105,8 @@ class Corridor:
             self._write_state_reward(total_reward)
             # 3. apply action
             action1, action2 = self._read_action()
-            self.intx_1.apply_action(action1)
-            self.intx_2.apply_action(action2)
+            self.intx_1.apply_action(action1, time, timeSta)
+            self.intx_2.apply_action(action2, time, timeSta)
         # 4. check-out event
         self.intx_1._bus_out_handler(time, timeSta)
         self.intx_2._bus_out_handler(time, timeSta)
