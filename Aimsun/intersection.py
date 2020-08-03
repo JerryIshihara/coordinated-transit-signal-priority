@@ -162,6 +162,20 @@ class Intersection:
 
         return [*prePOZ, *POZ]
 
+    def set_bus_actions_and_state(self, actions, joint_state):
+        """
+        save the action decided by DQN at bus checkin onto the bus object so it can be compared with the actual action applied
+        Parameters
+        ----------
+        actions : list of int
+            action to all intersections
+        joint_state : list of int
+            joint state of the intersections
+        """
+        self.bus_list[-1].set_action(actions)
+        self.bus_list[-1].set_state(joint_state)
+        return
+
     def apply_action(self, action, time, timeSta):
         """Apply the action to the intersection according to different 
         situations (hard code for upstream)
@@ -197,31 +211,42 @@ class Intersection:
         print("Extended at time: {}".format(time))
         print("Extended length: " + str(action) + " sec")
 
-    def log_parameter_file(self, bus_info, phasetime):
-        # TODO: finish this, need to collect all data that needed to be logged and write into the logfile
+    def log_parameter_file(self, phasetime, checked_out_bus):
         replicationID = ANGConnGetReplicationId()
-        vehicleID = bus_info.idVeh
-        this_states = self.get_state
-
+        vehicleID = checked_out_bus.bus_id
         target_headway = self.CONFIG['target_headway']
-
         parameter_log_file = self.CONFIG['log']
         reward = self.reward
+        check_out_hdy = checked_out_bus.check_out_headway
+        travelTime = checked_out_bus.check_out_time - checked_out_bus.check_in_time
+        state = checked_out_bus.original_state
+        if state is None:
+            state = [-99]*16
+        action = checked_out_bus.original_action
+        if action is None:
+            action = [-99]*2
 
-        check_out_hdy = self.last_checkout_bus.check_out_headway
-        travelTime = self.last_checkout_bus.check_out_time - self.last_checkout_bus.check_in_time
-        currentPhase = ECIGetCurrentPhase(self.CONFIG['intersection'])  # get current phase
+        # list of things in log by index
+        # 0: replication ID
+        # 1: vehicle ID
+        # 2: checkout time
+        # 3: check in phase number
+        # 4: check in phase time
+        # 5: checkout phase time
+        # 6: checkout headway
+        # 7 - 8: action 1, action 2 as decided at the bus check in
+        # 9: registered action at bus check out
+        # 10: Travel time
+        # 11+: states
+
         # the same cycle
-        # output = [replicationID, vehicleID, *this_states, busintime_list[2], check_in_hdy_L[0],
-        #           check_in_hdy_L[0] - target_headway, check_in_phase_no_L[0],
-        #           check_in_phaseTime_L[0],
-        #           busoutime_list[-1], check_out_hdy, check_out_hdy - target_headway, phasetime,
-        #           self.action, self.remain, travelTime, currentPhase]
+        output = [replicationID, vehicleID, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
+                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy, *action, self.extended, travelTime, *state]
 
         with open(parameter_log_file, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')
-            # csv_write.writerow(output)
-
+            csv_write.writerow(output)
+        return
 
     def get_reward(self):
         """Return the reward of the most current bus check-out event, and
@@ -378,11 +403,6 @@ class Intersection:
                             print("prePOZ has no bus when a check in event happened, check if upstream intersection "
                                   "is set correctly")
 
-                    ##### log ########
-                    # TODO: implement log function
-                    # self.log_parameter_file(busin_info, phasetime)
-                    ###### log #######
-
             self.last_in_info = temp_info.idVeh
 
         # update state
@@ -517,8 +537,7 @@ class Intersection:
                     travelTime = successfully_checked_out_bus.check_out_time - successfully_checked_out_bus.check_in_time
 
                     ##### log ########
-                    # TODO: implement log function
-                    # self.log_parameter_file(busout_info, phasetime)
+                    self.log_parameter_file(phasetime, successfully_checked_out_bus)
                     ###### log #######
 
 

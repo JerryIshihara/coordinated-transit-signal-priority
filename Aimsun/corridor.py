@@ -107,8 +107,9 @@ class Corridor:
             0 indicates successful function call to Aimsun Next
         """
         # 1. check-in event
-        if (self.intx_1._bus_enter_handler(time, timeSta) or
-        	self.intx_2._bus_enter_handler(time, timeSta)):
+        intx1_bus_checkin = self.intx_1._bus_enter_handler(time, timeSta)
+        intx2_bus_checkin = self.intx_2._bus_enter_handler(time, timeSta)
+        if ( intx1_bus_checkin or intx2_bus_checkin ):
             # update states based on each intersection
             self.joint_state = ([*self.intx_1.get_state(), 
                                  *self.intx_2.get_state()],
@@ -125,6 +126,12 @@ class Corridor:
             self._write_state_reward(total_reward)
             # 3. apply action
             action1, action2 = self._read_action()
+            # record the action decided to the checked in bus
+            if intx1_bus_checkin:
+                self.intx_1.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
+            if intx2_bus_checkin:
+                self.intx_2.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
+            # apply action to each intersection
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
         # 4. check-out event

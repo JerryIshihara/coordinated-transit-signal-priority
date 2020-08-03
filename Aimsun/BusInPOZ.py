@@ -13,8 +13,22 @@ class BusInPOZ:
         self.check_out_headway = -1
 
         self.last_update_time = check_in_time
+        self.original_action = None
+        self.original_state = None # state generated at check in
 
     def check_out(self, check_out_time, last_check_out=0):
         self.check_out_time = check_out_time
         self.check_out_headway = last_check_out - check_out_time
         self.last_update_time = check_out_time
+
+    def set_action(self, action):
+        if self.original_action is None:
+            self.original_action = action
+        else:
+            print("duplicate set original action, check to make sure implementation is correct")
+
+    def set_state(self, state):
+        if self.original_state is None:
+            self.original_state = state
+        else:
+            print("duplicate set original state, check to make sure implementation is correct")
