@@ -1,7 +1,11 @@
 """Aimsun Corridor
 """
 from intersection import Intersection
+from prePOZ import PrePOZ
 from uuid import uuid4
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
 from config import *
 
 
@@ -31,10 +35,13 @@ class Corridor:
         intersections : list
             a list of intersection configurations
         """
+        # first prePOZ + POZ
+        self.prePOZ_1 = PrePOZ(intersections[0]['prePOZ'])
         self.intx_1 = Intersection(intersections[0])
+        
+        # second prePOZ + POZ
+        self.prePOZ_2 = PrePOZ(intersections[1]['prePOZ'])
         self.intx_2 = Intersection(intersections[1])
-
-        self.intx_1.set_downstream_intersection(self.intx_2)
 
         self.joint_state = ([], uuid4().int) # ([joint state], flag)
         self.action_flag = 0
@@ -57,7 +64,7 @@ class Corridor:
             try:
                 joint_state_str = " ".join(joint_state[0])
                 f = open(STATE, "w+")
-                f.write("{} {}".format(joint_state_str, joint_state[1])
+                f.write("{} {}".format(joint_state_str, joint_state[1]))
                 f.close()
                 is_state_written = True
             except:
@@ -106,15 +113,23 @@ class Corridor:
         int
             0 indicates successful function call to Aimsun Next
         """
-        # 1. check-in event
+        # prePOZ update
+        self.prePOZ_1.update(time, timeSta)
+        self.prePOZ_2.update(time, timeSta)
+        # check-out event
+        self.intx_1._bus_out_handler(time, timeSta)
+        self.intx_2._bus_out_handler(time, timeSta)
+        # check-in event
         intx1_bus_checkin = self.intx_1._bus_enter_handler(time, timeSta)
         intx2_bus_checkin = self.intx_2._bus_enter_handler(time, timeSta)
         if ( intx1_bus_checkin or intx2_bus_checkin ):
             # update states based on each intersection
-            self.joint_state = ([*self.intx_1.get_state(), 
+            self.joint_state = ([*self.prePOZ_1.get_state(),
+                                 *self.intx_1.get_state(), 
+                                 *self.prePOZ_2.get_state(),
                                  *self.intx_2.get_state()],
                                  uuid4().int)
-            # 2. - send new state and previous reward to DQN and clear reward
+            #    - send new state and previous reward to DQN and clear reward
             #      no need to clear state since get_state() function is synchronous 
             #      to Aimsun
             #    - use get_reward() function to fetch cumulative reward in each intersection 
@@ -124,7 +139,7 @@ class Corridor:
             # cumulative reward between time step t and t + 1
             total_reward = r_1 + r_2
             self._write_state_reward(total_reward)
-            # 3. apply action
+            # apply action
             action1, action2 = self._read_action()
             # record the action decided to the checked in bus
             if intx1_bus_checkin:
@@ -134,9 +149,7 @@ class Corridor:
             # apply action to each intersection
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
-        # 4. check-out event
-        self.intx_1._bus_out_handler(time, timeSta)
-        self.intx_2._bus_out_handler(time, timeSta)
+        
         return 0
 
 

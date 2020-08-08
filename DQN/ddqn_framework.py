@@ -9,7 +9,6 @@
 
 
 ### imports
-from aimsun_env import *
 import numpy as np
 from numpy import linalg as LA
 import time
@@ -218,7 +217,7 @@ class trainer_config:
     '''
 
     def __init__(self,
-                 app_name='AimsunNext',
+                 app_name,
                  BUFFER_SIZE=50e3,
                  STEPS_PER_EPISODE=500,
                  MAX_STEPS=100000,
@@ -234,11 +233,6 @@ class trainer_config:
                  ):
         ### game environment
         self.app_name = app_name
-
-        ### world variables for model building
-        env = AimsunEnv()
-        self.INPUT_SIZE = 3
-        self.OUTPUT_SIZE = len(env.action_space)
         # env.close()
         ### training variables
         self.BUFFER_SIZE = BUFFER_SIZE
@@ -261,10 +255,10 @@ class trainer:
     train here, get your models and plots
     '''
 
-    def __init__(self, onlineModel, targetModel, trainer_config):
+    def __init__(self, onlineModel, targetModel, trainer_config, env):
         ### load config 
         self.app_name = trainer_config.app_name
-        self.env = AimsunEnv()
+        self.env = env
 
         ### training variables
         self.BUFFER_SIZE = trainer_config.BUFFER_SIZE
@@ -290,25 +284,25 @@ class trainer:
         ### ringbuffer
         self.REPLAY_BUFFER = ringbuffer(self.BUFFER_SIZE)
 
-    def load_config(self, config):
-        '''
-        loads new config
-        '''
-        ### env
-        self.app_name = config.app_name
-        self.env = AimsunEnv()
-        ### training variables
-        self.BUFFER_SIZE = config.BUFFER_SIZE
-        self.STEPS_PER_EPISODE = config.STEPS_PER_EPISODE
-        self.MAX_STEPS = config.MAX_STEPS
-        self.UPDATE_TARGET_STEPS = config.UPDATE_TARGET_STEPS
-        self.BATCH_SIZE = config.BATCH_SIZE
-        self.GAMMA = config.GAMMA
-        self.EXPLORATION = config.EXPLORATION
-        self.E_MIN = config.E_MIN
-        self.priority = config.priority
-        self.alpha = config.alpha
-        self.epsilon = config.epsilon
+    # def load_config(self, config):
+    #     '''
+    #     loads new config
+    #     '''
+    #     ### env
+    #     self.app_name = config.app_name
+    #     self.env = AimsunEnv()
+    #     ### training variables
+    #     self.BUFFER_SIZE = config.BUFFER_SIZE
+    #     self.STEPS_PER_EPISODE = config.STEPS_PER_EPISODE
+    #     self.MAX_STEPS = config.MAX_STEPS
+    #     self.UPDATE_TARGET_STEPS = config.UPDATE_TARGET_STEPS
+    #     self.BATCH_SIZE = config.BATCH_SIZE
+    #     self.GAMMA = config.GAMMA
+    #     self.EXPLORATION = config.EXPLORATION
+    #     self.E_MIN = config.E_MIN
+    #     self.priority = config.priority
+    #     self.alpha = config.alpha
+    #     self.epsilon = config.epsilon
 
     def save_config(self):
         '''
@@ -351,7 +345,8 @@ class trainer:
                 print("Saving model...")
             except:
                 print("Create new model file...")
-                continue
+                print(LOG_PATH)
+                return
 
 
 

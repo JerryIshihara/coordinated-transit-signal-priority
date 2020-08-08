@@ -17,7 +17,7 @@ LOG_PATH : str
 import os, inspect
 
 CWD = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-LOG_PATH = CWD + 'log_files/'
+LOG_PATH = CWD + '/log_files/'
 
 # log files
 STATE = LOG_PATH + 'state.txt'
@@ -28,6 +28,22 @@ PARAMETER_LOG = LOG_PATH + 'parameter_log.csv'
 Num_bus_in_rep = LOG_PATH + 'Num_bus_in_rep.txt'
 
 INTERSECTION_1 = {
+    'intersection': 1171274,
+    'busCallDetector': 1171405,
+    'busExitDetector': 1171391,
+    'section': 6601,
+    'phase_duration': [12, 4, 38, 7, 7, 4, 32, 6],
+    'phase_of_interest': 5,
+    'AlgB_decision': 9,
+    'log': LOG_PATH + '1171274.csv',
+    'target_headway': 290,
+    'prePOZ': {
+        'busExitDetector': 1171393,
+        'busCallDetector': 1171405,
+    }
+
+}
+INTERSECTION_2 = {
     'intersection': 1171288,
     'busCallDetector': 1171407,
     'busExitDetector': 1171389,
@@ -36,18 +52,12 @@ INTERSECTION_1 = {
     'phase_of_interest': 5,
     'AlgB_decision': 12,
     'log': LOG_PATH + '1171288.csv',
-    'target_headway': 290
+    'target_headway': 290,
+    'prePOZ': {
+        'busExitDetector': 1171391,
+        'busCallDetector': 1171407,
+    }
 }
-INTERSECTION_2 = {
-    'intersection': 1171274,
-    'busCallDetector': 1171405,
-    'busExitDetector': 1171391,
-    'section': 6601,
-    'phase_duration': [16, 38, 7, 11, 32, 6],
-    'phase_of_interest': 5,
-    'AlgB_decision': 9,
-    'log': LOG_PATH + '1171274.csv',
-    'target_headway': 290
-}
+
 
 CORRIDOR = [INTERSECTION_1, INTERSECTION_2]

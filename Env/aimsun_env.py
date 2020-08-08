@@ -1,13 +1,18 @@
 """AimsunEnv
 """
-import sys
+import os, sys, inspect
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+from config import *
 import csv
 import numpy as np
 from uuid import uuid4
-from config import *
-from env import Environment
+from .env import Environment
 
 
+REWARD_INPUT_LEN = 2
+STATE_INPUT_LEN = 17
 
 class AimsunEnv(Environment):
     """Aimsun Next environment
@@ -20,15 +25,7 @@ class AimsunEnv(Environment):
         check if received reward is at the new time step
     state_flag : int
         check if received state is at the new time step
-
-    STATE_INPUT_LEN : int
-        state size + 1 (flag)
-    REWARD_INPUT_LEN : int
-        reward size + 1 (flag)
     """
-
-    REWARD_INPUT_LEN = 2
-    STATE_INPUT_LEN = 17
     
     def __init__(self, action_space):
         """Initialize Aimsun Next environment object
@@ -42,6 +39,26 @@ class AimsunEnv(Environment):
         self.reward_flag = 0
         self.state_flag = 0
         self.num_step = 0
+
+    def get_state_size(self):
+        """Return the state size
+        
+        Returns
+        -------
+        int
+            state size
+        """
+        return STATE_INPUT_LEN - 1
+
+    def get_action_size(self):
+        """Return the action space size
+        
+        Returns
+        -------
+        int
+            action space size
+        """
+        return len(self.action_space)
 
     def _receive_and_log_reward(self):
         """Receive, log and return the new reward
@@ -146,25 +163,13 @@ class AimsunEnv(Environment):
         return self._get_state()
 
     # TODO: indicate the first bus in each rep
-    # def get_num_bus_in_rep(self):
-    #     """Summary
+    def get_num_bus_in_rep(self):
+        """Summary
         
-    #     Returns:
-    #         TYPE: Description
-    #     """
-    #     num_bus = []
-    #     while len(num_bus) != 1:
-    #         try:
-    #             f = open(Num_bus_in_rep, "r")
-    #             num_bus = f.read()
-    #             f.close()
-    #             num_bus = num_bus.split()
-    #         except:
-    #             continue
-
-    #         if len(num_bus) != 0:
-    #             print(num_bus[0])
-    #             return int(num_bus[0])
+        Returns:
+            TYPE: Description
+        """
+        return 2
 
     
 
