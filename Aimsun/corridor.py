@@ -1,12 +1,13 @@
 """Aimsun Corridor
 """
-from intersection import Intersection
-from prePOZ import PrePOZ
 from uuid import uuid4
+import os, sys, inspect
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 from config import *
+from intersection import *
+from prePOZ import *
 
 
 
@@ -24,7 +25,6 @@ class Corridor:
         Description
     joint_state : TYPE
         Description
-
     """
     
     def __init__(self, intersections):
@@ -36,12 +36,12 @@ class Corridor:
             a list of intersection configurations
         """
         # first prePOZ + POZ
-        self.prePOZ_1 = PrePOZ(intersections[0]['prePOZ'])
         self.intx_1 = Intersection(intersections[0])
+        self.prePOZ_1 = PrePOZ(intersections[0]['prePOZ'])
         
         # second prePOZ + POZ
-        self.prePOZ_2 = PrePOZ(intersections[1]['prePOZ'])
         self.intx_2 = Intersection(intersections[1])
+        self.prePOZ_2 = PrePOZ(intersections[1]['prePOZ'])
 
         self.joint_state = ([], uuid4().int) # ([joint state], flag)
         self.action_flag = 0
@@ -79,7 +79,7 @@ class Corridor:
             action1, action2 from DQN
         """
         flag = self.action_flag
-        while flag == self.action_flag
+        while flag == self.action_flag:
             try:
                 f = open(self.ACTION, "r")
                 data = f.read()
@@ -124,11 +124,11 @@ class Corridor:
         intx2_bus_checkin = self.intx_2._bus_enter_handler(time, timeSta)
         if ( intx1_bus_checkin or intx2_bus_checkin ):
             # update states based on each intersection
-            self.joint_state = ([*self.prePOZ_1.get_state(),
-                                 *self.intx_1.get_state(), 
-                                 *self.prePOZ_2.get_state(),
-                                 *self.intx_2.get_state()],
-                                 uuid4().int)
+            pre1 = self.prePOZ_1.get_state()
+            pre2 = self.prePOZ_2.get_state()
+            poz1 = self.intx_1.get_state()
+            poz2 = self.intx_2.get_state()
+            self.joint_state = (pre1 + poz1 + pre2 + poz2, uuid4().int)
             #    - send new state and previous reward to DQN and clear reward
             #      no need to clear state since get_state() function is synchronous 
             #      to Aimsun

@@ -1,4 +1,6 @@
-class PrePoz:
+from AAPI import *
+
+class PrePOZ:
     
     def __init__(self, config):
     	self.CONFIG = config

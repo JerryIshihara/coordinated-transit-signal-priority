@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
 """Summary
 """
 from AAPI import *
-from BusInPoz import BusInPoz
+from BusInPOZ import BusInPOZ
+from util import *
 import util
 import csv
 
 class Intersection:
+
     """Summary
 
     Attributes
@@ -89,23 +92,23 @@ class Intersection:
 
         self.state = [0, 0, 0, 0, 0, 0]
 
-    def set_downstream_intersection(self, intersection):
-        """
-        set the intersection after the current intersection
-        (so checked out buses are written to next intersection's prePOZ)
+    # def set_downstream_intersection(self, intersection):
+    #     """
+    #     set the intersection after the current intersection
+    #     (so checked out buses are written to next intersection's prePOZ)
 
-        Parameters
-        ----------
-        intersection : Intersection
-            Intersection object for the intersection immediately after the current intersection
+    #     Parameters
+    #     ----------
+    #     intersection : Intersection
+    #         Intersection object for the intersection immediately after the current intersection
 
-        """
-        self.downstream_intersection = intersection
-        # initialize the prePOZ for next intersection
-        # dict key is bus id
-        self.downstream_intersection.prePOZ_bus_checkout_time_dict = {}
-        self.downstream_intersection.prePOZ_numbus = 0
-        return
+    #     """
+    #     self.downstream_intersection = intersection
+    #     # initialize the prePOZ for next intersection
+    #     # dict key is bus id
+    #     self.downstream_intersection.prePOZ_bus_checkout_time_dict = {}
+    #     self.downstream_intersection.prePOZ_numbus = 0
+    #     return
 
     def _find_first_checkout_time_in_prePOZ(self):
         """
@@ -158,9 +161,7 @@ class Intersection:
         else:
             prePOZ = [len(self.prePOZ_bus_checkout_time_dict.keys()), self._find_first_checkout_time_in_prePOZ()]
 
-        POZ = self.state
-
-        return [*prePOZ, *POZ]
+        return self.state
 
     def set_bus_actions_and_state(self, actions, joint_state):
         """
@@ -241,7 +242,7 @@ class Intersection:
 
         # the same cycle
         output = [replicationID, vehicleID, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
-                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy, *action, self.extended, travelTime, *state]
+                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + action + [self.extended, travelTime] + state
 
         with open(parameter_log_file, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')
@@ -381,7 +382,7 @@ class Intersection:
                     else:
                         # for the first bus, assume that the check in headway is perfect
                         last_check_in_time = time - target_headway
-                    self.bus_list.append(BusInPoz(intersection,
+                    self.bus_list.append(BusInPOZ(intersection,
                                                     busin_info,
                                                     currentPhase,
                                                     phasetime,
@@ -499,10 +500,6 @@ class Intersection:
 
         # Check number of all vehicles in and out
         self.allnumvel = AKIVehStateGetNbVehiclesSection(section, True)
-        # bus enter check
-        enterNum = AKIDetGetCounterCyclebyId(
-            busCallDetector,
-            busVehiclePosition)  # Number of entering bus(es) in last step
 
         # bus exit check
         exitNum = AKIDetGetCounterCyclebyId(busExitDetector, busVehiclePosition)  # Number of exit vehicle in last step
