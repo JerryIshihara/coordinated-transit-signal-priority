@@ -10,7 +10,6 @@ from intersection import *
 from prePOZ import *
 
 
-
 class Corridor:
 
     """Summary
@@ -52,17 +51,21 @@ class Corridor:
         is_reward_written = False
         while not is_reward_written:
             try:
-                f = open(STATE, "w+")
-                f.write("{} {}".format(reward, uuid().int))
+                f = open(REWARD, "w+")
+                f.write("{} {}".format(reward, uuid4().int))
                 f.close()
                 is_reward_written = True
             except:
+                print("")
                 continue
         
+        print("joint_state: {}".format(self.joint_state))
+        joint_state = self.joint_state
+        joint_state_str = ' '.join(str(n) for n in joint_state[0])
+        print("finished processing {} {}".format(joint_state_str, joint_state[1]))
         is_state_written = False
         while not is_state_written:
             try:
-                joint_state_str = " ".join(joint_state[0])
                 f = open(STATE, "w+")
                 f.write("{} {}".format(joint_state_str, joint_state[1]))
                 f.close()
@@ -81,7 +84,7 @@ class Corridor:
         flag = self.action_flag
         while flag == self.action_flag:
             try:
-                f = open(self.ACTION, "r")
+                f = open(ACTION, "r")
                 data = f.read()
                 f.close()
                 data = data.split()
@@ -149,6 +152,7 @@ class Corridor:
             # apply action to each intersection
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
+
         
         return 0
 
