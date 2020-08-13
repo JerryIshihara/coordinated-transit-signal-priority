@@ -12,6 +12,7 @@
 import numpy as np
 from numpy import linalg as LA
 import time
+import csv
 import pickle
 import os, sys, inspect
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -104,18 +105,18 @@ class ringbuffer:
         init_flag = False
         if self.state_buffer.shape[1] == 777:
             self.state_buffer = np.empty((0, sample[0].shape[1]))  # [1:]
-            self.action_buffer = np.empty((0, 1))  # [1:]
-            self.reward_buffer = np.empty((0, 1))  # [1:]
+            self.action_buffer = np.empty((0, sample[1].shape[1]))  # [1:]
+            self.reward_buffer = np.empty((0, sample[2].shape[1]))  # [1:]
             self.next_state_buffer = np.empty((0, sample[3].shape[1]))  # [1:]
             self.done_buffer = np.empty((0, 1))  # [1:]
             self.priorities = np.empty((0, 1))  # [1:]
             init_flag = True
         # self.state_buffer = np.append(self.state_buffer, sample[0][True, :], axis=0)
         self.state_buffer = np.append(self.state_buffer, sample[0], axis=0)
-        self.action_buffer = np.append(self.action_buffer, sample[1].reshape(1, 1), axis=0)
-        self.reward_buffer = np.append(self.reward_buffer, sample[2].reshape(1, 1), axis=0)
+        self.action_buffer = np.append(self.action_buffer, sample[1], axis=0)
+        self.reward_buffer = np.append(self.reward_buffer, sample[2], axis=0)
         self.next_state_buffer = np.append(self.next_state_buffer, sample[3], axis=0)
-        self.done_buffer = np.append(self.done_buffer, sample[4].reshape(1, 1), axis=0)
+        self.done_buffer = np.append(self.done_buffer, sample[4], axis=0)
         # print(np.max(self.priorities),'maximum prio')
         new_sample_prio = np.max(self.priorities) if self.priorities.shape[0] > 0 and np.max(
             np.abs(self.priorities)) < 1e10 else 1.
@@ -342,7 +343,6 @@ class trainer:
                 with open(LOG_PATH + 'Model', 'wb') as fout:
                     pickle.dump(all_attribute, fout)
                 is_written = True
-                print("Saving model...")
             except:
                 print("Create new model file...")
                 print(LOG_PATH)
@@ -430,7 +430,7 @@ class trainer:
         eps_rew = 0.
         step_counter = 0.
         self.save_model()
-        # current_state = self.normalize_state(self.env.reset())
+        current_state = self.env.reset()
 
 
         for STEP in range(self.MAX_STEPS):
@@ -441,33 +441,27 @@ class trainer:
                 action = self.env.rand_action()
             else:
                 Q = (self.onlineNet.infer(current_state))[0]
-                # ############################# log online Q ################################
-                # print(Q)
-                # with open(Q_online_log, "a+") as online:  # Log key parameters
-                #     csv_write = csv.writer(online, dialect='excel')
-                #     csv_write.writerow(Q)
-                # ############################# log online Q ################################
                 action = np.argmax(Q)
-
 
             # apply action
             next_state, reward, done = self.env.step(action)
-            # normalization
-            # next_state = self.normalize_state(next_state)
-            print("normalized: {}, {}, {}".format(next_state[0][0], next_state[0][1], next_state[0][2]))
+            # TODO: normalization
+            # TODO: log data
 
             # end training when simulation ends
-            if done:
-                break
-
-
+            if done: break
             if (self.env.get_num_bus_in_rep() == 1):
                 self.REPLAY_BUFFER.delete()
                 print(">>>>>>>Passed 1st bus.\n")
             else:
                 eps_rew += reward
+                action_value = self.env.action_space[action]
                 self.REPLAY_BUFFER.add(
-                    [np.array(current_state), np.array(action), np.array(reward), np.array(next_state), np.array(done)])
+                    [np.array(current_state).reshape(1, len(current_state)), 
+                     np.array(action_value).reshape(1, len(action_value)), 
+                     np.array(reward).reshape(1, 1), 
+                     np.array(next_state).reshape(1, len(next_state)), 
+                     np.array(done).reshape(1, 1)])
                 step_counter += 1.
 
 

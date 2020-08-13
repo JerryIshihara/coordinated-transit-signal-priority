@@ -208,7 +208,7 @@ class Intersection:
             self.extendedalready = 1
         self.extended = action
 
-        print("------- Extend start here ----------")
+        print("------- {} Extend start here ----------".format(intersection))
         print("Extended at time: {}".format(time))
         print("Extended length: " + str(action) + " sec")
 
@@ -242,7 +242,7 @@ class Intersection:
 
         # the same cycle
         output = [replicationID, vehicleID, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
-                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + action + [self.extended, travelTime] + state
+                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + list(action) + [self.extended, travelTime] + list(state)
 
         with open(parameter_log_file, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')
@@ -532,12 +532,8 @@ class Intersection:
 
                     self.last_checkout_bus = successfully_checked_out_bus
                     travelTime = successfully_checked_out_bus.check_out_time - successfully_checked_out_bus.check_in_time
-
-                    ##### log ########
+                    # log parameters
                     self.log_parameter_file(phasetime, successfully_checked_out_bus)
-                    ###### log #######
-
-
                     reward_gained = self._compute_reward(travelTime, successfully_checked_out_bus)
                     self.reward += reward_gained
                     print("Reward gained at checked out: {}".format(reward_gained))

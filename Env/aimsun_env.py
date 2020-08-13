@@ -125,7 +125,7 @@ class AimsunEnv(Environment):
                 if len(data) != STATE_INPUT_LEN: continue
                 new_flag = int(data[-1])
                 if new_flag != self.state_flag:
-                    S_ = np.array(map(lambda x: float(x), data[:-1]))
+                    S_ = np.array(list(map(lambda x: float(x), data[:-1])))
                     is_read = True
                     self.state_flag = new_flag
             except:
