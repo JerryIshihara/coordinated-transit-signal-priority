@@ -322,14 +322,14 @@ class trainer:
                               self.epsilon
                               )
 
-    def normalize_state(self, state):
-        out = []
-        state = state[0]
-        out.append((state[0]-223.162698)/141.321376) # ttarget
-        out.append((state[1]-54.163896)/31.7719917) # toNearGreen
-        out.append((state[2]-11.450951)/7.92628154) # numVeh
-        out = np.reshape(out, (1, 3))
-        return out
+    # def normalize_state(self, state):
+    #     out = []
+    #     state = state[0]
+    #     out.append((state[0]-223.162698)/141.321376) # ttarget
+    #     out.append((state[1]-54.163896)/31.7719917) # toNearGreen
+    #     out.append((state[2]-11.450951)/7.92628154) # numVeh
+    #     out = np.reshape(out, (1, 3))
+    #     return out
 
 
 
@@ -430,7 +430,7 @@ class trainer:
         eps_rew = 0.
         step_counter = 0.
         self.save_model()
-        current_state = self.normalize_state(self.env.reset())
+        # current_state = self.normalize_state(self.env.reset())
 
 
         for STEP in range(self.MAX_STEPS):
@@ -453,7 +453,7 @@ class trainer:
             # apply action
             next_state, reward, done = self.env.step(action)
             # normalization
-            next_state = self.normalize_state(next_state)
+            # next_state = self.normalize_state(next_state)
             print("normalized: {}, {}, {}".format(next_state[0][0], next_state[0][1], next_state[0][2]))
 
             # end training when simulation ends
