@@ -59,10 +59,8 @@ class Corridor:
                 print("")
                 continue
         
-        print("joint_state: {}".format(self.joint_state))
         joint_state = self.joint_state
         joint_state_str = ' '.join(str(n) for n in joint_state[0])
-        print("finished processing {} {}".format(joint_state_str, joint_state[1]))
         is_state_written = False
         while not is_state_written:
             try:
