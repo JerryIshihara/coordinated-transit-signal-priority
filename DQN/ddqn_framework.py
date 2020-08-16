@@ -91,19 +91,17 @@ class ringbuffer:
     def __init__(self, SIZE):
         self.buffer_size = 0
         self.SIZE = SIZE
-
         # buffers
-        magic = np.ones((1, 777))
-        self.state_buffer = magic
-        self.action_buffer = magic
-        self.reward_buffer = magic
-        self.next_state_buffer = magic
-        self.done_buffer = magic
-        self.priorities = magic
+        self.state_buffer = None
+        self.action_buffer = None
+        self.reward_buffer = None
+        self.next_state_buffer = None
+        self.done_buffer = None
+        self.priorities = None
 
     def add(self, sample):
         init_flag = False
-        if self.state_buffer.shape[1] == 777:
+        if not self.state_buffer:
             self.state_buffer = np.empty((0, sample[0].shape[1]))  # [1:]
             self.action_buffer = np.empty((0, sample[1].shape[1]))  # [1:]
             self.reward_buffer = np.empty((0, sample[2].shape[1]))  # [1:]
@@ -281,6 +279,8 @@ class trainer:
         ### logs
         self.reward_plot = []
         self.loss_plot = []
+        self.online_q_plot = []
+        self.target_q_plot = []
 
         ### ringbuffer
         self.REPLAY_BUFFER = ringbuffer(self.BUFFER_SIZE)
@@ -323,20 +323,22 @@ class trainer:
                               self.epsilon
                               )
 
-    # def normalize_state(self, state):
-    #     out = []
-    #     state = state[0]
-    #     out.append((state[0]-223.162698)/141.321376) # ttarget
-    #     out.append((state[1]-54.163896)/31.7719917) # toNearGreen
-    #     out.append((state[2]-11.450951)/7.92628154) # numVeh
-    #     out = np.reshape(out, (1, 3))
-    #     return out
-
-
+    def normalize_state(self, state):
+        state_buffer = self.REPLAY_BUFFER.state_buffer
+        if not state_buffer or state_buffer.shape[0] == 0: return state
+        assert len(state) == state_buffer.shape[1], "{} != {}".format(len(state), state_buffer.shape[1])
+        return (state - np.mean(state_buffer, axis=0))/np.std(state_buffer, axis=0)
 
     def save_model(self):
-        all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet, self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
-
+        all_attribute = [self.save_config(), 
+                         self.env, 
+                         self.onlineNet, 
+                         self.targetNet, 
+                         self.reward_plot, 
+                         self.loss_plot, 
+                         self.REPLAY_BUFFER,
+                         self.target_q_plot,
+                         self.online_q_plot]
         is_written = False
         while not is_written:
             try:
@@ -344,16 +346,14 @@ class trainer:
                     pickle.dump(all_attribute, fout)
                 is_written = True
             except:
-                print("Create new model file...")
-                print(LOG_PATH)
+                print("Save model failed.")
                 return
-
-
 
     def load_model(self, flag=False):
         if flag:
             try:
-                # all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet, self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
+                # all_attribute = [self.save_config(), self.env, self.onlineNet, self.targetNet,
+                #                  self.reward_plot, self.loss_plot, self.REPLAY_BUFFER]
                 with open(LOG_PATH + 'Model', 'rb') as fin:
                     all_attribute =  pickle.load(fin)
 
@@ -402,58 +402,42 @@ class trainer:
         else:
             pass
 
+    # def log_weight(self):
+    #     onlineFrob = []
+    #     targetFrob = []
+    #     online = self.onlineNet
+    #     target = self.targetNet
+    #     for L in range(len(online.Layerlist)):
+    #         onlineFrob.append(LA.norm(online.Layerlist[L].w))
+    #         targetFrob.append(LA.norm(target.Layerlist[L].w))
 
-
-
-
-    def log_weight(self):
-        onlineFrob = []
-        targetFrob = []
-        online = self.onlineNet
-        target = self.targetNet
-        for L in range(len(online.Layerlist)):
-            onlineFrob.append(LA.norm(online.Layerlist[L].w))
-            targetFrob.append(LA.norm(target.Layerlist[L].w))
-
-        with open(online_w, "a+") as online:
-            csv_write = csv.writer(online, dialect='excel')
-            csv_write.writerow(onlineFrob)
-        with open(target_w, "a+") as target:
-            csv_write = csv.writer(target, dialect='excel')
-            csv_write.writerow(targetFrob)
-
-
-
+    #     with open(online_w, "a+") as online:
+    #         csv_write = csv.writer(online, dialect='excel')
+    #         csv_write.writerow(onlineFrob)
+    #     with open(target_w, "a+") as target:
+    #         csv_write = csv.writer(target, dialect='excel')
+    #         csv_write.writerow(targetFrob)
 
     def train(self, flag=False, log=False):
-        #### traincycles
         eps_rew = 0.
         step_counter = 0.
-        self.save_model()
-        current_state = self.env.reset()
-
+        current_state = self.normalize_state(self.env.reset())
 
         for STEP in range(self.MAX_STEPS):
             e = 1. / ((len(self.loss_plot) / self.EXPLORATION) + 1)
-
             if np.random.uniform(0, 1) < max(self.E_MIN, e):
                 # random action
                 action = self.env.rand_action()
             else:
                 Q = (self.onlineNet.infer(current_state))[0]
                 action = np.argmax(Q)
-
             # apply action
             next_state, reward, done = self.env.step(action)
-            # TODO: normalization
-            # TODO: log data
+            next_state = self.normalize_state(next_state)
 
             # end training when simulation ends
             if done: break
-            if (self.env.get_num_bus_in_rep() == 1):
-                self.REPLAY_BUFFER.delete()
-                print(">>>>>>>Passed 1st bus.\n")
-            else:
+            if not self.env.exclude():
                 eps_rew += reward
                 action_value = self.env.action_space[action]
                 self.REPLAY_BUFFER.add(
@@ -465,33 +449,15 @@ class trainer:
                 step_counter += 1.
 
 
-            # if step_counter > self.STEPS_PER_EPISODE: done = True
-            if step_counter > self.STEPS_PER_EPISODE: done = True
-
-            #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            if done:
-                self.reward_plot += [eps_rew]
-                if flag:
-                    print('breaking after one episode with {} reward after {} steps'.format(eps_rew, STEP + 1))
-                    break
-                eps_rew = 0.
-                step_counter = 0.
-                # next_state = self.env.reset()
-            current_state = next_state
-            # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
             if STEP > 2000 or flag:
                 BATCH = self.REPLAY_BUFFER.sample(self.BATCH_SIZE, prio=self.priority)
-                train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)
-
-                with open(Loss, "a+") as L:  # Log key parameters
-                    csv_write = csv.writer(L, dialect='excel')
-                    csv_write.writerow([self.onlineNet.loss])
-                
+                train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)                
                 self.loss_plot += [self.onlineNet.loss]
+                self.online_q_plot += [Q]
+                self.target_q_plot += [(self.targetNet.infer(current_state))[0]]
+                self.reward_plot += [eps_rew]
 
-                
-
+            current_state = next_state
 
             if (STEP + 1) % self.UPDATE_TARGET_STEPS == 0:
                 if self.priority: self.REPLAY_BUFFER.prio_update(self.onlineNet, self.targetNet, GAMMA=self.GAMMA,
@@ -500,8 +466,8 @@ class trainer:
                               np.array(self.reward_plot)[-2:].mean())
                 update_target(self.onlineNet, self.targetNet, duel=False)
 
-            self.log_weight()
-            self.save_model()
+            # self.log_weight()
+            if STEP % 10 == 0: self.save_model()
 
 
 
