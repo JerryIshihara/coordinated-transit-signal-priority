@@ -439,10 +439,9 @@ class trainer:
             if done: break
             if not self.env.exclude():
                 eps_rew += reward
-                action_value = self.env.action_space[action]
                 self.REPLAY_BUFFER.add(
                     [np.array(current_state).reshape(1, len(current_state)), 
-                     np.array(action_value).reshape(1, len(action_value)), 
+                     np.array(action).reshape(1, 1), 
                      np.array(reward).reshape(1, 1), 
                      np.array(next_state).reshape(1, len(next_state)), 
                      np.array(done).reshape(1, 1)])
