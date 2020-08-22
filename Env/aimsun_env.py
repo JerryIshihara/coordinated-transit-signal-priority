@@ -39,6 +39,7 @@ class AimsunEnv(Environment):
         self.reward_flag = 0
         self.state_flag = 0
         self.num_step = 0
+        self.check_in_time = []
 
     def get_state_size(self):
         """Return the state size
@@ -125,7 +126,8 @@ class AimsunEnv(Environment):
                 if len(data) != STATE_INPUT_LEN: continue
                 new_flag = int(data[-1])
                 if new_flag != self.state_flag:
-                    S_ = np.array(map(lambda x: float(x), data[:-1]))
+                    S_ = np.array(list(map(lambda x: float(x), data[:-1])))
+                    self.check_in_time.append(max(S_[3], S_[11]))
                     is_read = True
                     self.state_flag = new_flag
             except:
@@ -162,14 +164,17 @@ class AimsunEnv(Environment):
         print('Waiting for the first bus...')
         return self._get_state()
 
-    # TODO: indicate the first bus in each rep
-    def get_num_bus_in_rep(self):
+    def exclude(self):
         """Summary
         
         Returns:
             TYPE: Description
         """
-        return 2
+        if len(self.check_in_time) > 10: self.check_in_time.pop(0)
+        if len(self.check_in_time) <= 2: return True
+        if self.check_in_time[-1] < self.check_in_time[-2]:
+            return True
+        return False
 
     
 
