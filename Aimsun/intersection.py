@@ -379,8 +379,10 @@ class Intersection:
                     new_bus_entered = True
                     if self.bus_list:
                         last_check_in_time = self.bus_list[-1].check_in_time
-                    else:
+                    elif self.last_checkout_bus is not None:
                         # for the first bus, assume that the check in headway is perfect
+                        last_check_in_time = self.last_checkout_bus.check_in_time
+                    else:
                         last_check_in_time = time - target_headway
                     self.bus_list.append(BusInPOZ(intersection,
                                                     busin_info,
@@ -391,18 +393,18 @@ class Intersection:
                                          )
                     self.numbus += 1
                     self.allnumvel += 1
-                    if self.prePOZ_bus_checkout_time_dict is not None:
-                        # this means there is data for prePOZ for this intersection
-                        if self.prePOZ_numbus > 0:
-                            self.prePOZ_numbus -= 1
-                            try:
-                                del self.prePOZ_bus_checkout_time_dict[busin_info.idVeh]
-                            except KeyError:
-                                raise KeyError("cannot find bus {} in prePOZ list, check if upstream intersection is "
-                                      "recording bus checkout event correctly".format(busin_info.idVeh))
-                        else:
-                            print("prePOZ has no bus when a check in event happened, check if upstream intersection "
-                                  "is set correctly")
+                    # if self.prePOZ_bus_checkout_time_dict is not None:
+                    #     # this means there is data for prePOZ for this intersection
+                    #     if self.prePOZ_numbus > 0:
+                    #         self.prePOZ_numbus -= 1
+                    #         try:
+                    #             del self.prePOZ_bus_checkout_time_dict[busin_info.idVeh]
+                    #         except KeyError:
+                    #             raise KeyError("cannot find bus {} in prePOZ list, check if upstream intersection is "
+                    #                   "recording bus checkout event correctly".format(busin_info.idVeh))
+                    #     else:
+                    #         print("prePOZ has no bus when a check in event happened, check if upstream intersection "
+                    #               "is set correctly")
 
             self.last_in_info = temp_info.idVeh
 

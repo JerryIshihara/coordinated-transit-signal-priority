@@ -18,7 +18,7 @@ class BusInPOZ:
 
     def check_out(self, check_out_time, last_check_out=0):
         self.check_out_time = check_out_time
-        self.check_out_headway = last_check_out - check_out_time
+        self.check_out_headway = check_out_time - last_check_out
         self.last_update_time = check_out_time
 
     def set_action(self, action):

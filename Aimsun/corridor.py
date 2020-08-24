@@ -2,6 +2,7 @@
 """
 from uuid import uuid4
 import os, sys, inspect
+# import numpy as np
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
@@ -59,10 +60,8 @@ class Corridor:
                 print("")
                 continue
         
-        print("joint_state: {}".format(self.joint_state))
         joint_state = self.joint_state
         joint_state_str = ' '.join(str(n) for n in joint_state[0])
-        print("finished processing {} {}".format(joint_state_str, joint_state[1]))
         is_state_written = False
         while not is_state_written:
             try:
@@ -141,6 +140,7 @@ class Corridor:
             r_2 = self.intx_2.get_reward()
             # cumulative reward between time step t and t + 1
             total_reward = r_1 + r_2
+            # total_reward = 1 / (1 + np.exp(-total_reward))
             self._write_state_reward(total_reward)
             # apply action
             action1, action2 = self._read_action()
@@ -150,6 +150,8 @@ class Corridor:
             if intx2_bus_checkin:
                 self.intx_2.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
             # apply action to each intersection
+            if self.intx_1.numbus == 0:
+                action1 = 0  # if there is no bus in intx 1, no action can be applied
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
 
