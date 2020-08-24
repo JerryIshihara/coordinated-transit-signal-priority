@@ -2,6 +2,7 @@
 """
 from uuid import uuid4
 import os, sys, inspect
+# import numpy as np
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
@@ -139,6 +140,7 @@ class Corridor:
             r_2 = self.intx_2.get_reward()
             # cumulative reward between time step t and t + 1
             total_reward = r_1 + r_2
+            # total_reward = 1 / (1 + np.exp(-total_reward))
             self._write_state_reward(total_reward)
             # apply action
             action1, action2 = self._read_action()
