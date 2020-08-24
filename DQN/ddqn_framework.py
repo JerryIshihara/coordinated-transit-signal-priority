@@ -100,15 +100,13 @@ class ringbuffer:
         self.priorities = None
 
     def add(self, sample):
-        init_flag = False
-        if not self.state_buffer:
+        if self.state_buffer is None:
             self.state_buffer = np.empty((0, sample[0].shape[1]))  # [1:]
             self.action_buffer = np.empty((0, sample[1].shape[1]))  # [1:]
             self.reward_buffer = np.empty((0, sample[2].shape[1]))  # [1:]
             self.next_state_buffer = np.empty((0, sample[3].shape[1]))  # [1:]
             self.done_buffer = np.empty((0, 1))  # [1:]
             self.priorities = np.empty((0, 1))  # [1:]
-            init_flag = True
         # self.state_buffer = np.append(self.state_buffer, sample[0][True, :], axis=0)
         self.state_buffer = np.append(self.state_buffer, sample[0], axis=0)
         self.action_buffer = np.append(self.action_buffer, sample[1], axis=0)
@@ -124,15 +122,13 @@ class ringbuffer:
         # print(np.max(self.priorities),'maximum prio after')
 
         self.buffer_size += 1.
-        if self.buffer_size > self.SIZE or init_flag:
+        if self.buffer_size > self.SIZE:
             self.state_buffer = self.state_buffer[1:]
             self.action_buffer = self.action_buffer[1:]
             self.reward_buffer = self.reward_buffer[1:]
             self.next_state_buffer = self.next_state_buffer[1:]
             self.done_buffer = self.done_buffer[1:]
             self.priorities = self.priorities[1:]
-            init_flag = False
-
 
     def delete(self):
         if self.buffer_size > 0:
@@ -325,7 +321,7 @@ class trainer:
 
     def normalize_state(self, state):
         state_buffer = self.REPLAY_BUFFER.state_buffer
-        if not state_buffer or state_buffer.shape[0] == 0: return state
+        if state_buffer is None or state_buffer.shape[0] == 0: return state
         assert len(state) == state_buffer.shape[1], "{} != {}".format(len(state), state_buffer.shape[1])
         return (state - np.mean(state_buffer, axis=0))/np.std(state_buffer, axis=0)
 

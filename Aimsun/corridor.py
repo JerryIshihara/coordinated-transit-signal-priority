@@ -150,6 +150,8 @@ class Corridor:
             if intx2_bus_checkin:
                 self.intx_2.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
             # apply action to each intersection
+            if self.intx_1.numbus == 0:
+                action1 = 0  # if there is no bus in intx 1, no action can be applied
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
 
