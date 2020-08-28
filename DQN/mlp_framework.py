@@ -299,7 +299,6 @@ class layer:
             forward pass (computes activation)
                 return: activation(input * weights[+ bias])
         '''
-        ##### IF no_bias != True  :
         if self.no_bias:
             self.x1 = input_
         else:

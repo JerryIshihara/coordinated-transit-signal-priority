@@ -321,9 +321,9 @@ class trainer:
 
     def normalize_state(self, state):
         state_buffer = self.REPLAY_BUFFER.state_buffer
-        if state_buffer is None or state_buffer.shape[0] == 0: return state
-        assert len(state) == state_buffer.shape[1], "{} != {}".format(len(state), state_buffer.shape[1])
-        return (state - np.mean(state_buffer, axis=0))/np.std(state_buffer, axis=0)
+        if not (state_buffer is None or state_buffer.shape[0] == 0): 
+            state = (state - np.mean(state_buffer, axis=0))/np.std(state_buffer, axis=0)
+        return np.array(state).reshape(1, len(state))
 
     def save_model(self):
         all_attribute = [self.save_config(), 
@@ -436,10 +436,10 @@ class trainer:
             if not self.env.exclude():
                 eps_rew += reward
                 self.REPLAY_BUFFER.add(
-                    [np.array(current_state).reshape(1, len(current_state)), 
+                    [current_state, 
                      np.array(action).reshape(1, 1), 
                      np.array(reward).reshape(1, 1), 
-                     np.array(next_state).reshape(1, len(next_state)), 
+                     next_state, 
                      np.array(done).reshape(1, 1)])
                 step_counter += 1.
 
