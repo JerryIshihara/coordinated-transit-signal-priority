@@ -40,22 +40,6 @@ def train_bellman(onlineDQN, targetDQN, batch, GAMMA):
     Q = onlineDQN.infer(state)
     t = targetDQN.infer(next_state)
     a = np.argmax(onlineDQN.infer(next_state), axis=1)
-
-    ######################################## log Q #########################################################################
-    for i in range(Q.shape[0]):
-        with open(Q_online_log, "a+") as online:  # Log key parameters
-            csv_write = csv.writer(online, dialect='excel')
-            csv_write.writerow(Q[i])
-        with open(Q_target_log, "a+") as target:  # Log key parameters
-            csv_write = csv.writer(target, dialect='excel')
-            csv_write.writerow(t[i])
-        with open(Rt_log, "a+") as R:  # Log key parameters
-            csv_write = csv.writer(R, dialect='excel')
-            rt = [reward[i]]
-            csv_write.writerow(rt)
-    ########################################################################################################################
-
-    # Q[range(Q.shape[0]), action.astype(int)] = reward + np.logical_not(done) * GAMMA * t[range(t.shape[0]), a]
     Q[range(Q.shape[0]), action.astype(int)] = reward + np.logical_not(done) * GAMMA * t[range(t.shape[0]), a]
     state_batch_ = state
     target_batch_ = Q
@@ -113,14 +97,10 @@ class ringbuffer:
         self.reward_buffer = np.append(self.reward_buffer, sample[2], axis=0)
         self.next_state_buffer = np.append(self.next_state_buffer, sample[3], axis=0)
         self.done_buffer = np.append(self.done_buffer, sample[4], axis=0)
-        # print(np.max(self.priorities),'maximum prio')
         new_sample_prio = np.max(self.priorities) if self.priorities.shape[0] > 0 and np.max(
             np.abs(self.priorities)) < 1e10 else 1.
-        # print(new_sample_prio,'new prio')
         self.priorities = np.append(self.priorities, np.array([new_sample_prio]).reshape(1, 1), axis=0)
         self.priorities /= np.sum(self.priorities)
-        # print(np.max(self.priorities),'maximum prio after')
-
         self.buffer_size += 1.
         if self.buffer_size > self.SIZE:
             self.state_buffer = self.state_buffer[1:]
@@ -138,13 +118,9 @@ class ringbuffer:
             self.reward_buffer = np.delete(self.reward_buffer, -1, axis=0)
             self.next_state_buffer = np.delete(self.next_state_buffer, -1, axis=0)
             self.done_buffer = np.delete(self.done_buffer, -1, axis=0)
-
-            # print(new_sample_prio,'new prio')
             self.priorities = np.delete(self.priorities, -1, axis=0)
             self.priorities /= np.sum(self.priorities)
-
             self.buffer_size -= 1.
-
 
     def get(self):
         return [self.state_buffer,
@@ -200,7 +176,6 @@ class ringbuffer:
         TD_loss = TD_loss[range(TD_loss.shape[0]), a]
         prio = np.power((TD_loss + epsilon), alpha)
         prio /= np.sum(prio)
-
         priobuffer = np.append(priobuffer, prio)
         self.priorities = priobuffer[:, True]
 
@@ -321,9 +296,12 @@ class trainer:
 
     def normalize_state(self, state):
         state_buffer = self.REPLAY_BUFFER.state_buffer
-        if not (state_buffer is None or state_buffer.shape[0] == 0): 
-            state = (state - np.mean(state_buffer, axis=0))/np.std(state_buffer, axis=0)
-        return np.array(state).reshape(1, len(state))
+        state = np.array(state).reshape(1, len(state))
+        if not (state_buffer is None or state_buffer.shape[0] <= 1): 
+            mean = np.mean(state_buffer, axis=0)
+            std = np.std(state_buffer, axis=0)
+            state = np.divide((state - mean), std, out=(state - mean), where=(std!=0))
+        return state
 
     def save_model(self):
         all_attribute = [self.save_config(), 
@@ -448,7 +426,7 @@ class trainer:
                 BATCH = self.REPLAY_BUFFER.sample(self.BATCH_SIZE, prio=self.priority)
                 train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)                
                 self.loss_plot += [self.onlineNet.loss]
-                self.online_q_plot += [Q]
+                self.online_q_plot += [(self.onlineNet.infer(current_state))[0]]
                 self.target_q_plot += [(self.targetNet.infer(current_state))[0]]
                 self.reward_plot += [eps_rew]
 
