@@ -242,7 +242,7 @@ class Intersection:
 
         # the same cycle
         output = [replicationID, vehicleID, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
-                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + list(action) + [self.extended, travelTime] + list(state)
+                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + list(action) + [self.extended, travelTime] + state
 
         with open(parameter_log_file, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')

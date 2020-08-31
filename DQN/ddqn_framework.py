@@ -20,15 +20,17 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir) 
 from config import *
 
-
 Q_target_log =  LOG_PATH + 'Q_target.csv'
 Q_online_log = LOG_PATH + 'Q_online.csv'
 Rt_log = LOG_PATH + 'Rt.csv'
 Loss = LOG_PATH + 'loss.csv'
-online_w = LOG_PATH + 'online_w.csv'
-target_w = LOG_PATH + 'target_w.csv'
 
 
+
+def write_csv(path, data):
+    with open(path, "a+") as out:  
+        csv_write = csv.writer(out, dialect='excel')
+        csv_write.writerow(data)
 
 # helper functions
 def train_bellman(onlineDQN, targetDQN, batch, GAMMA):
@@ -424,10 +426,12 @@ class trainer:
 
             if STEP > 2000 or flag:
                 BATCH = self.REPLAY_BUFFER.sample(self.BATCH_SIZE, prio=self.priority)
-                train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)                
+                train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)
+                write_csv(Q_target_log, (self.targetNet.infer(current_state))[0])
+                write_csv(Q_online_log, (self.onlineNet.infer(current_state))[0])
+                write_csv(Rt_log, [reward])
+                write_csv(Loss, [self.onlineNet.loss])
                 self.loss_plot += [self.onlineNet.loss]
-                self.online_q_plot += [(self.onlineNet.infer(current_state))[0]]
-                self.target_q_plot += [(self.targetNet.infer(current_state))[0]]
                 self.reward_plot += [eps_rew]
 
             current_state = next_state

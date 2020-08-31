@@ -84,10 +84,6 @@ class AimsunEnv(Environment):
                     self.reward_flag = new_flag
             except:
                 continue
-        # write to REWARD_CSV for later analysis
-        with open(self.REWARD_CSV, "a+") as out:  
-            csv_write = csv.writer(out, dialect='excel')
-            csv_write.writerow([reward])
         return reward
 
     def _write_action(self, index):
