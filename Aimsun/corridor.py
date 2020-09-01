@@ -146,9 +146,9 @@ class Corridor:
             action1, action2 = self._read_action()
             # record the action decided to the checked in bus
             if intx1_bus_checkin:
-                self.intx_1.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
+                self.intx_1.set_bus_actions_and_state([action1, action2], pre1 + poz1 + pre2 + poz2)
             if intx2_bus_checkin:
-                self.intx_2.set_bus_actions_and_state([action1, action2], self.joint_state[:-1])
+                self.intx_2.set_bus_actions_and_state([action1, action2], pre1 + poz1 + pre2 + poz2)
             # apply action to each intersection
             if self.intx_1.numbus == 0:
                 action1 = 0  # if there is no bus in intx 1, no action can be applied
