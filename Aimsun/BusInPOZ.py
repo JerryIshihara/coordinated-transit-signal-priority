@@ -1,11 +1,12 @@
 class BusInPOZ:
     
-    def __init__(self, intersection, check_in_bus_info, check_in_phase, check_in_phasetime, check_in_time, last_check_in=0):
+    def __init__(self, intersection, check_in_bus_info, check_in_phase, check_in_phasetime, check_in_time, last_check_in):
         self.intersection_of_interest = intersection
         self.bus_id = check_in_bus_info.idVeh
         self.check_in_time = check_in_time
         self.check_in_phase = check_in_phase
         self.check_in_phasetime = check_in_phasetime
+        self.last_check_in = last_check_in # previous bus check in time
 
         self.check_in_headway = check_in_time - last_check_in
 

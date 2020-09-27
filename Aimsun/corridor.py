@@ -56,8 +56,9 @@ class Corridor:
                 f.write("{} {}".format(reward, uuid4().int))
                 f.close()
                 is_reward_written = True
+                with open(REWARD_CSV, "a+") as out:  # Log key parameters
+                    out.write("{},{}\n".format(reward, uuid4().int))
             except:
-                print("")
                 continue
         
         joint_state = self.joint_state

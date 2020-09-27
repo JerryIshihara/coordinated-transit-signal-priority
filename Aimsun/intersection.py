@@ -84,7 +84,6 @@ class Intersection:
         self.reward = 0  # cumulative reward
         self.replicationID = None
         # self.extend_record = {}
-        self.downstream_intersection = None
 
         # number of bus in prePOZ will produce error if a bus enters POZ without being recorded in prePOZ (aka checkout from last intersection)
         self.prePOZ_numbus = None
@@ -92,23 +91,39 @@ class Intersection:
 
         self.state = [0, 0, 0, 0, 0, 0]
 
-    # def set_downstream_intersection(self, intersection):
-    #     """
-    #     set the intersection after the current intersection
-    #     (so checked out buses are written to next intersection's prePOZ)
+    def empty_intersection(self):
+        self.cycled_bus = 0
+        self.total_bus = 0
+        self.bus_list = [] # list of bus in POZ
+        self.last_checkout_bus = None
+        self.extended = 0 # registered action
+        self.numbus = 0
+        self.allnumvel = 0
+        self.last_in_info = -99 # bus id for last checked in bus
+        self.last_out_info = -99
+        self.extendedalready = 0  # extended or not in current cycle
 
-    #     Parameters
-    #     ----------
-    #     intersection : Intersection
-    #         Intersection object for the intersection immediately after the current intersection
+        self.state = [0, 0, 0, 0, 0, 0]
 
-    #     """
-    #     self.downstream_intersection = intersection
-    #     # initialize the prePOZ for next intersection
-    #     # dict key is bus id
-    #     self.downstream_intersection.prePOZ_bus_checkout_time_dict = {}
-    #     self.downstream_intersection.prePOZ_numbus = 0
-    #     return
+    '''
+    def set_downstream_intersection(self, intersection):
+        """
+        set the intersection after the current intersection
+        (so checked out buses are written to next intersection's prePOZ)
+
+        Parameters
+        ----------
+        intersection : Intersection
+            Intersection object for the intersection immediately after the current intersection
+
+        """
+        self.downstream_intersection = intersection
+        # initialize the prePOZ for next intersection
+        # dict key is bus id
+        self.downstream_intersection.prePOZ_bus_checkout_time_dict = {}
+        self.downstream_intersection.prePOZ_numbus = 0
+        return
+    '''
 
     def _find_first_checkout_time_in_prePOZ(self):
         """
@@ -136,9 +151,6 @@ class Intersection:
                     last_checkout_time = checkout_time - self.CONFIG['target_headway']
                 bus.check_out(checkout_time, last_checkout_time)
                 self.bus_list.remove(bus)
-                if self.downstream_intersection is not None:
-                    # record the checkout bus and checkout time for the prePOZ of the next intersection
-                    self.downstream_intersection.prePOZ_bus_checkout_time_dict[checkout_id] = checkout_time
                 return bus
         return False
 
@@ -191,18 +203,18 @@ class Intersection:
             Time of simulation in stationary period, in sec
         """
 
-        if self.numbus == 0 and self.prePOZ_numbus is None:
-            # this means this is the upstream intersection AND there is no bus here
-            # ^^^ this is hardcoded for now, in the future each intersection should has a pointer to its previous
-            #       intersection and check that if there is no bus in all upstream intersections and current
-            #       intersection, force the action to be zero
-            action = 0
         intersection = self.CONFIG['intersection']
         phase_of_interest = self.CONFIG['phase_of_interest']
         total_phases = len(self.CONFIG['phase_duration'])
         green_duration = self.CONFIG['phase_duration'][phase_of_interest - 1]
 
-        # TODO: changing the intersection time might not be legal! need to handle this
+        phasetime = time - ECIGetStartingTimePhase(intersection)
+        currentPhase = ECIGetCurrentPhase(intersection)
+
+        # check if the action is legal
+        remaining_green = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
+        if action < remaining_green:
+            action = remaining_green
         ECIChangeTimingPhase(intersection, phase_of_interest, green_duration + action, timeSta)
         if action != 0:
             self.extendedalready = 1
@@ -212,12 +224,58 @@ class Intersection:
         print("Extended at time: {}".format(time))
         print("Extended length: " + str(action) + " sec")
 
+
+    def log_state_for_check_in(self, phasetime, checked_in_bus):
+        replicationID = ANGConnGetReplicationId()
+        vehicleID = checked_in_bus.bus_id
+        target_headway = self.CONFIG['target_headway']
+        parameter_log_file = self.CONFIG['log']
+        corridor_log_file = self.CONFIG['corridor_log']
+        reward = self.reward
+        check_in_headway = checked_in_bus.check_in_headway
+        check_in_time = checked_in_bus.check_in_time
+        travelTime = '-'
+        state = checked_in_bus.original_state
+        if state is None:
+            state = [-99] * 16
+        action = ['-'] * 2
+
+        # list of things in log by index
+        # 0: replication ID
+        # 1: vehicle ID
+        # 2: check in time
+        # 3: checkout time
+        # 4: check in phase number
+        # 5: check in phase time
+        # 6: checkout phase time
+        # 7: check in headway
+        # 8: checkout headway
+        # 9 - 10: action 1, action 2 as decided at the bus check in
+        # 11: registered action at bus check out
+        # 12: Travel time
+        # 13: reward
+        # 14+: states
+
+        # the same cycle
+        output = [replicationID, vehicleID, check_in_time, '-', checked_in_bus.check_in_phase,
+                  checked_in_bus.check_in_phasetime, phasetime, check_in_headway, '-'] + action + [self.extended,
+                                                                                                  travelTime, reward] + state
+
+        with open(corridor_log_file, 'a+') as out:
+            csv_write = csv.writer(out, dialect='excel')
+            corridor_log_output = ['int_{}_checkin'.format(self.CONFIG['intersection'])] + output
+            csv_write.writerow(corridor_log_output)
+
+
     def log_parameter_file(self, phasetime, checked_out_bus):
         replicationID = ANGConnGetReplicationId()
         vehicleID = checked_out_bus.bus_id
         target_headway = self.CONFIG['target_headway']
         parameter_log_file = self.CONFIG['log']
+        corridor_log_file = self.CONFIG['corridor_log']
         reward = self.reward
+        check_in_time = checked_out_bus.check_in_time
+        check_in_hdy = checked_out_bus.check_in_headway
         check_out_hdy = checked_out_bus.check_out_headway
         travelTime = checked_out_bus.check_out_time - checked_out_bus.check_in_time
         state = checked_out_bus.original_state
@@ -230,24 +288,32 @@ class Intersection:
         # list of things in log by index
         # 0: replication ID
         # 1: vehicle ID
-        # 2: checkout time
-        # 3: check in phase number
-        # 4: check in phase time
-        # 5: checkout phase time
-        # 6: checkout headway
-        # 7 - 8: action 1, action 2 as decided at the bus check in
-        # 9: registered action at bus check out
-        # 10: Travel time
-        # 11+: states
+        # 2: check in time
+        # 3: checkout time
+        # 4: check in phase number
+        # 5: check in phase time
+        # 6: checkout phase time
+        # 7: check in headway
+        # 8: checkout headway
+        # 9 - 10: action 1, action 2 as decided at the bus check in
+        # 11: registered action at bus check out
+        # 12: Travel time
+        # 13: reward
+        # 14+: states
 
         # the same cycle
-        output = [replicationID, vehicleID, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
-                  checked_out_bus.check_in_phasetime, phasetime, check_out_hdy] + list(action) + [self.extended, travelTime] + state
+        output = [replicationID, vehicleID, check_in_time, checked_out_bus.check_out_time, checked_out_bus.check_in_phase,
+                  checked_out_bus.check_in_phasetime, phasetime, check_in_hdy, check_out_hdy] + list(action) + [self.extended, travelTime, reward] + state
 
         with open(parameter_log_file, "a+") as out:  # Log key parameters
             csv_write = csv.writer(out, dialect='excel')
             csv_write.writerow(output)
+        with open(corridor_log_file, 'a+') as out:
+            csv_write = csv.writer(out, dialect='excel')
+            corridor_log_output = ['int_{}_checkout'.format(self.CONFIG['intersection'])] + output
+            csv_write.writerow(corridor_log_output)
         return
+
 
     def get_reward(self):
         """Return the reward of the most current bus check-out event, and
@@ -325,7 +391,10 @@ class Intersection:
         # get bus internal position
         busVehiclePosition = AKIVehGetVehTypeInternalPosition(1171922)  
         target_headway = self.CONFIG['target_headway']
-        self.replicationID = ANGConnGetReplicationId()
+        current_replicationID = ANGConnGetReplicationId()
+        if current_replicationID != self.replicationID:
+            self.empty_intersection() # clean the bus list in new replication ID
+        self.replicationID = current_replicationID
         # determine which phase is green in the bus's perspective
         phase_of_interest = self.CONFIG['phase_of_interest']
         # assumption for this is that all phases has duration defined
@@ -393,18 +462,6 @@ class Intersection:
                                          )
                     self.numbus += 1
                     self.allnumvel += 1
-                    # if self.prePOZ_bus_checkout_time_dict is not None:
-                    #     # this means there is data for prePOZ for this intersection
-                    #     if self.prePOZ_numbus > 0:
-                    #         self.prePOZ_numbus -= 1
-                    #         try:
-                    #             del self.prePOZ_bus_checkout_time_dict[busin_info.idVeh]
-                    #         except KeyError:
-                    #             raise KeyError("cannot find bus {} in prePOZ list, check if upstream intersection is "
-                    #                   "recording bus checkout event correctly".format(busin_info.idVeh))
-                    #     else:
-                    #         print("prePOZ has no bus when a check in event happened, check if upstream intersection "
-                    #               "is set correctly")
 
             self.last_in_info = temp_info.idVeh
 
@@ -523,8 +580,7 @@ class Intersection:
                 else:
                     self.numbus -= 1
                     self.allnumvel -= 1
-                    if self.downstream_intersection is not None:
-                        self.downstream_intersection.prePOZ_numbus += 1
+
                     print("Bus banching %d" % self.numbus)
                     checkout_id = busout_info.idVeh
                     successfully_checked_out_bus = self._checkout_bus_from_POZ(checkout_id, time)
@@ -535,9 +591,9 @@ class Intersection:
                     self.last_checkout_bus = successfully_checked_out_bus
                     travelTime = successfully_checked_out_bus.check_out_time - successfully_checked_out_bus.check_in_time
                     # log parameters
-                    self.log_parameter_file(phasetime, successfully_checked_out_bus)
                     reward_gained = self._compute_reward(travelTime, successfully_checked_out_bus)
                     self.reward += reward_gained
+                    self.log_parameter_file(phasetime, successfully_checked_out_bus)
                     print("Reward gained at checked out: {}".format(reward_gained))
 
             self.last_out_info = temp_info.idVeh
