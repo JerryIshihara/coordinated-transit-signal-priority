@@ -210,11 +210,11 @@ class Intersection:
 
         phasetime = time - ECIGetStartingTimePhase(intersection)
         currentPhase = ECIGetCurrentPhase(intersection)
-
-        # check if the action is legal
-        remaining_green = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
-        if action < remaining_green:
-            action = remaining_green
+        if currentPhase == phase_of_interest:
+            # check if the action is legal
+            remaining_green = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
+            if remaining_green>=0 and action + remaining_green < 0:
+                action = -remaining_green
         ECIChangeTimingPhase(intersection, phase_of_interest, green_duration + action, timeSta)
         if action != 0:
             self.extendedalready = 1
@@ -235,9 +235,9 @@ class Intersection:
         check_in_headway = checked_in_bus.check_in_headway
         check_in_time = checked_in_bus.check_in_time
         travelTime = '-'
-        state = checked_in_bus.original_state
+        state = None
         if state is None:
-            state = [-99] * 16
+            state = ['-'] * 16
         action = ['-'] * 2
 
         # list of things in log by index
@@ -258,7 +258,7 @@ class Intersection:
 
         # the same cycle
         output = [replicationID, vehicleID, check_in_time, '-', checked_in_bus.check_in_phase,
-                  checked_in_bus.check_in_phasetime, phasetime, check_in_headway, '-'] + action + [self.extended,
+                  checked_in_bus.check_in_phasetime, '-', check_in_headway, '-'] + action + [self.extended,
                                                                                                   travelTime, reward] + state
 
         with open(corridor_log_file, 'a+') as out:
@@ -369,6 +369,15 @@ class Intersection:
             return to_interest - phasetime + extended - past_phase
         return sum(self.CONFIG['phase_duration']) - phasetime + extended
 
+    def _find_last_check_in_time(self, bus_list):
+        last_check_in= None
+        for bus in bus_list:
+            if last_check_in is not None:
+                last_check_in = max(bus.check_in_time, last_check_in)
+            else:
+                last_check_in = bus.check_in_time
+        return last_check_in
+
     def _bus_enter_handler(self, time, timeSta):
         """Summary
 
@@ -446,27 +455,33 @@ class Intersection:
                     continue
                 else:
                     new_bus_entered = True
+                    last_check_in_time_in_intersection = 0
+                    last_check_in_time_checkedout_bus = 0
                     if self.bus_list:
-                        last_check_in_time = self.bus_list[-1].check_in_time
-                    elif self.last_checkout_bus is not None:
+                        last_check_in_time_in_intersection = self._find_last_check_in_time(self.bus_list)
+                    if self.last_checkout_bus is not None:
                         # for the first bus, assume that the check in headway is perfect
-                        last_check_in_time = self.last_checkout_bus.check_in_time
-                    else:
+                        last_check_in_time_checkedout_bus = self.last_checkout_bus.check_in_time
+                    if not self.bus_list and self.last_checkout_bus is None:
                         last_check_in_time = time - target_headway
-                    self.bus_list.append(BusInPOZ(intersection,
+                    else:
+                        last_check_in_time = max(last_check_in_time_in_intersection, last_check_in_time_checkedout_bus)
+                    checked_in_bus = BusInPOZ(intersection,
                                                     busin_info,
                                                     currentPhase,
                                                     phasetime,
                                                     time,
                                                     last_check_in=last_check_in_time)
-                                         )
+                    self.bus_list.append(checked_in_bus)
                     self.numbus += 1
                     self.allnumvel += 1
+                    self.log_state_for_check_in(phasetime, checked_in_bus)
 
             self.last_in_info = temp_info.idVeh
 
-        # update state
+            # update state
         self._update_state(currentPhase, phasetime, time)
+
 
         return new_bus_entered
 
@@ -585,10 +600,11 @@ class Intersection:
                     checkout_id = busout_info.idVeh
                     successfully_checked_out_bus = self._checkout_bus_from_POZ(checkout_id, time)
 
+                    # update to keep track of the last checkout bus
                     if successfully_checked_out_bus is False:
                         raise Exception("Checkout detected for bus {}, but cannot found this bus in POZ".format(checkout_id))
-
                     self.last_checkout_bus = successfully_checked_out_bus
+
                     travelTime = successfully_checked_out_bus.check_out_time - successfully_checked_out_bus.check_in_time
                     # log parameters
                     reward_gained = self._compute_reward(travelTime, successfully_checked_out_bus)
