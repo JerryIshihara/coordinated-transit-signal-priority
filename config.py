@@ -41,7 +41,8 @@ def clean_folder_and_initialize():
             print('Failed to delete %s. Reason: %s' % (file_path, e))
     os.makedirs(LOG_PATH, exist_ok=True)
     with open(PARAMETER_LOG, 'w+') as log_file:
-        log_file.write('log, replication ID, vehicle ID, checkin time, checkout time, check in phase number, check in phase time, checkout phase time, checkin headway, checkout headway, action 1, action 2 as decided at the bus check in, registered action at bus check out, Travel time, reward, prePOZ bus checkout time, prePOZ numbus, last_available_checkout_time, last_check_in_time, check_in_hdy, numbus, allnumvel, tToNearGreenPhase,\n')
+        log_file.write('log, replication ID, vehicle ID, checkin time, checkout time, check in phase number, check in phase time, checkout phase time, checkin headway, checkout headway, action 1, action 2 as decided at the bus check in, registered action at bus check out, Travel time, reward, prePOZ bus checkout time, prePOZ numbus, last_available_checkout_time, last_check_in_time, check_in_hdy, numbus, allnumvel, tToNearGreenPhase, prePOZ bus checkout time, prePOZ numbus, last_available_checkout_time, last_check_in_time, check_in_hdy, numbus, allnumvel, tToNearGreenPhase\n')
+
 
 INTERSECTION_1 = {
     'corridor_log': PARAMETER_LOG,
