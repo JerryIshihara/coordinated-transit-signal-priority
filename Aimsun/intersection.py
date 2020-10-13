@@ -210,11 +210,13 @@ class Intersection:
 
         phasetime = time - ECIGetStartingTimePhase(intersection)
         currentPhase = ECIGetCurrentPhase(intersection)
+
         if currentPhase == phase_of_interest:
             # check if the action is legal
             remaining_green = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
             if remaining_green>=0 and action + remaining_green < 0:
                 action = -remaining_green
+
         ECIChangeTimingPhase(intersection, phase_of_interest, green_duration + action, timeSta)
         if action != 0:
             self.extendedalready = 1
@@ -235,9 +237,11 @@ class Intersection:
         check_in_headway = checked_in_bus.check_in_headway
         check_in_time = checked_in_bus.check_in_time
         travelTime = '-'
+
         state = None
         if state is None:
             state = ['-'] * 16
+
         action = ['-'] * 2
 
         # list of things in log by index
@@ -258,8 +262,7 @@ class Intersection:
 
         # the same cycle
         output = [replicationID, vehicleID, check_in_time, '-', checked_in_bus.check_in_phase,
-                  checked_in_bus.check_in_phasetime, '-', check_in_headway, '-'] + action + [self.extended,
-                                                                                                  travelTime, reward] + state
+                  checked_in_bus.check_in_phasetime, '-', check_in_headway, '-'] + action + [self.extended, travelTime, reward] + state
 
         with open(corridor_log_file, 'a+') as out:
             csv_write = csv.writer(out, dialect='excel')
