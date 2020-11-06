@@ -4,8 +4,8 @@
 ## Introduction
 <img src="/demo/tsp_flow.png" width="700"/> <br />
 Coordinate Transit Signal Priority with two traffic intersections in Toronto area, improving speed and reliability with a single deep reinforcement learning agent.
-## Usage
-### 1. Clone the repository
+<!-- ## Usage -->
+<!-- ### 1. Clone the repository
 ### 2. Load Python script to Aimsun model
   - open Aimsun Next 8.3 and load the target Aimsun model
   - double click the dynamic senerio in the project list on the right of the screen
@@ -31,7 +31,7 @@ where
 - `ACONSOLE_PATH`: path to Aimsun 8.3 exacutable file 
 - `CONTROLLER_PATH`: path to `RunSeveralReplications.py`
 - `MODEL_PATH`: path to Aimsun model
-- `START_REP`, `END_REP`: start and end replication numbers 
+- `START_REP`, `END_REP`: start and end replication numbers  -->
 
 ## Model Set-up
 ### 1.	Time step
