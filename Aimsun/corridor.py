@@ -156,6 +156,7 @@ class Corridor:
             self.intx_1.apply_action(action1, time, timeSta)
             self.intx_2.apply_action(action2, time, timeSta)
 
+        
         return 0
 
 
