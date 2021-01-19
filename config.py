@@ -50,7 +50,7 @@ INTERSECTION_1 = {
     'busCallDetector': 1171405,
     'busExitDetector': 1171391,
     'section': 6601,
-    'phase_duration': [12, 4, 38, 7, 7, 4, 32, 6],
+    'phase_duration': [16, 38, 7, 11, 32, 6],
     'phase_of_interest': 5,
     'AlgB_decision': 9,
     'log': LOG_PATH + '1171274.csv',
