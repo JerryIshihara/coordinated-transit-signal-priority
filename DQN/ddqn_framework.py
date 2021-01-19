@@ -404,6 +404,7 @@ class trainer:
             if np.random.uniform(0, 1) < max(self.E_MIN, e):
                 # random action
                 action = self.env.rand_action()
+
             else:
                 Q = (self.onlineNet.infer(current_state))[0]
                 action = np.argmax(Q)
