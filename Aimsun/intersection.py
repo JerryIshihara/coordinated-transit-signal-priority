@@ -202,32 +202,11 @@ class Intersection:
         timeSta : int
             Time of simulation in stationary period, in sec
         """
+
         intersection = self.CONFIG['intersection']
         phase_of_interest = self.CONFIG['phase_of_interest']
         total_phases = len(self.CONFIG['phase_duration'])
         green_duration = self.CONFIG['phase_duration'][phase_of_interest - 1]
-
-        # check the time duration is correct
-        pdur = doublep()
-        pcmax = doublep()
-        pcmin = doublep()
-        ECIGetDurationsPhase(self.CONFIG['intersection'], self.CONFIG['phase_of_interest'], timeSta, pdur, pcmax, pcmin)
-        poi_duration = int(pdur.value())
-
-        if self.extendedalready:
-            print("int {} already extened for {} seconds, apply {} extension on top of it".format(self.CONFIG['intersection'], self.extended, action))
-            action = action + self.extended
-            # clip the action to the legal limit
-            if action >20:
-                action =20
-            if action <-20:
-                action = -20
-        else:
-            print("int {} has no assigned extension, the phase of interest is {} sec, extending {} sec extension".format(self.CONFIG['intersection'], poi_duration, action))
-
-
-        if poi_duration != green_duration - self.extended:
-            print("\n\n ERROR: phase duration already changed from {} to {} and self.extended value is {}\n\n".format(green_duration, poi_duration, self.extended))
 
         phasetime = time - ECIGetStartingTimePhase(intersection)
         currentPhase = ECIGetCurrentPhase(intersection)
@@ -241,8 +220,6 @@ class Intersection:
         ECIChangeTimingPhase(intersection, phase_of_interest, green_duration + action, timeSta)
         if action != 0:
             self.extendedalready = 1
-        else:
-            self.extendedalready = 0
         self.extended = action
 
         print("------- {} Extend start here ----------".format(intersection))
@@ -367,8 +344,7 @@ class Intersection:
                     self.CONFIG['target_headway'])
         d_in = abs(bus_object.check_in_headway - self.CONFIG['target_headway'])
         improve = d_in - d_out
-        reward = 1 * improve - 0 * travelTime
-        reward = (400 - travelTime)/40
+        reward = 0.6 * improve - 0.4 * travelTime
         return reward
         
     def _get_toNearGreenPhase(self, currentPhase, phasetime, extended):
@@ -444,13 +420,9 @@ class Intersection:
         # green phase ended and the buses that are still in POZ becomes cycled buses
         if currentPhase == phase_after_phase_of_interest and phasetime == 0:
             self.cycled_bus = self.numbus
-            if self.extendedalready:
-                print("phase of interest passed, try to reset extension")
             self.extendedalready = 0 # clear the extended already flag
         if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
-            if self.extended!=0:
-                print("time extension reset")
-            self.extended = 0
+            self.green_extend = 0
             ECIChangeTimingPhase(
                 intersection, 
                 phase_of_interest,
@@ -469,6 +441,7 @@ class Intersection:
         if enterNum > 0:
             self.cycled_bus = 0
             self.total_bus += 1
+            print("------- No.{} Bus Checked -------".format(self.total_bus))
             # First vehicle info
             busin_info = AKIDetGetInfVehInDetectionInfVehCyclebyId(
                 busCallDetector, 0, busVehiclePosition)
@@ -484,15 +457,13 @@ class Intersection:
                     # Skip first vehicle and loop
                     continue
                 else:
-                    print("-------INTX:{} - No.{} Bus Checked -------".format(self.CONFIG['intersection'], self.total_bus))
                     new_bus_entered = True
                     last_check_in_time_in_intersection = 0
                     last_check_in_time_checkedout_bus = 0
                     if self.bus_list:
-                        # there is still bus in intx (need to double check if it is a missed bus)
                         last_check_in_time_in_intersection = self._find_last_check_in_time(self.bus_list)
                     if self.last_checkout_bus is not None:
-                        # there is a checked out bus
+                        # for the first bus, assume that the check in headway is perfect
                         last_check_in_time_checkedout_bus = self.last_checkout_bus.check_in_time
                     if not self.bus_list and self.last_checkout_bus is None:
                         last_check_in_time = time - target_headway
@@ -536,7 +507,10 @@ class Intersection:
 
         """
         # compute new state without registered action
-        tToNearGreenPhase = self._get_toNearGreenPhase(currentPhase, phasetime, self.extended)
+        tToNearGreenPhase = self._get_toNearGreenPhase(currentPhase, phasetime, 0)
+        if tToNearGreenPhase < 0:
+            # already in an extended green phase
+            tToNearGreenPhase = 0  # the green can end immediately
 
         if self.numbus > 0:
             # last available checkout for this intersection
@@ -593,13 +567,8 @@ class Intersection:
         # green phase ended and the buses that are still in POZ becomes cycled buses
         if currentPhase == phase_after_phase_of_interest and phasetime == 0:
             self.cycled_bus = self.numbus
-            if self.extendedalready:
-                print("phase of interest passed, try to reset extension")
-            self.extendedalready = 0 # clear the extended already flag
         if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
-            if self.extended!=0:
-                print("time extension reset")
-            self.extended = 0
+            self.green_extend = 0
             ECIChangeTimingPhase(
                 intersection, 
                 phase_of_interest,
@@ -627,11 +596,8 @@ class Intersection:
                     # Skip first vehicle and loop
                     continue
                 else:
-                    if self.numbus >=1:
-                        self.numbus -= 1
-                        self.allnumvel -= 1
-                    else:
-                        print("ERROR: try to reduce numbus to negative, checkout bus: {}".format(busout_info.idVeh))
+                    self.numbus -= 1
+                    self.allnumvel -= 1
 
                     print("Bus banching %d" % self.numbus)
                     checkout_id = busout_info.idVeh

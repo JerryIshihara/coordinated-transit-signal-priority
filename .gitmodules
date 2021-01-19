@@ -1,0 +1,3 @@
+[submodule "DQN-model"]
+	path = DQN-model
+	url = https://github.com/JerryIshihara/DQN-model.git
