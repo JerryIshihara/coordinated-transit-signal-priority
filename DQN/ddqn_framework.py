@@ -395,57 +395,61 @@ class trainer:
     #         csv_write.writerow(targetFrob)
 
     def train(self, flag=False, log=False):
-        eps_rew = 0.
+        
+        EPOCH = 9999
         step_counter = 0.
-        current_state = self.normalize_state(self.env.reset())
+        eps_rew = 0.
 
-        for STEP in range(self.MAX_STEPS):
-            e = 1. / ((len(self.loss_plot) / self.EXPLORATION) + 1)
-            if np.random.uniform(0, 1) < max(self.E_MIN, e):
-                # random action
-                action = self.env.rand_action()
+        for epoch in range(EPOCH):
+            current_state = self.normalize_state(self.env.reset())
+        
+            for STEP in range(self.MAX_STEPS):
+                e = 1. / ((len(self.loss_plot) / self.EXPLORATION) + 1)
+                if np.random.uniform(0, 1) < max(self.E_MIN, e):
+                    # random action
+                    action = self.env.rand_action()
 
-            else:
-                Q = (self.onlineNet.infer(current_state))[0]
-                action = np.argmax(Q)
-            # apply action
-            next_state, reward, done = self.env.step(action)
-            next_state = self.normalize_state(next_state)
+                else:
+                    Q = (self.onlineNet.infer(current_state))[0]
+                    action = np.argmax(Q)
+                # apply action
+                next_state, reward, done = self.env.step(action)
+                next_state = self.normalize_state(next_state)
 
-            # end training when simulation ends
-            if done: break
-            if not self.env.exclude():
-                eps_rew += reward
-                self.REPLAY_BUFFER.add(
-                    [current_state, 
-                     np.array(action).reshape(1, 1), 
-                     np.array(reward).reshape(1, 1), 
-                     next_state, 
-                     np.array(done).reshape(1, 1)])
-                step_counter += 1.
+                # end training when simulation ends
+                if done: break
+                if not self.env.exclude():
+                    eps_rew += reward
+                    self.REPLAY_BUFFER.add(
+                        [current_state, 
+                         np.array(action).reshape(1, 1), 
+                         np.array(reward).reshape(1, 1), 
+                         next_state, 
+                         np.array(done).reshape(1, 1)])
+                    step_counter += 1.
 
 
-            if STEP > 2000 or flag:
-                BATCH = self.REPLAY_BUFFER.sample(self.BATCH_SIZE, prio=self.priority)
-                train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)
-                write_csv(Q_target_log, (self.targetNet.infer(current_state))[0])
-                write_csv(Q_online_log, (self.onlineNet.infer(current_state))[0])
-                write_csv(Rt_log, [reward])
-                write_csv(Loss, [self.onlineNet.loss])
-                self.loss_plot += [self.onlineNet.loss]
-                self.reward_plot += [eps_rew]
+                if STEP > 2000 or flag:
+                    BATCH = self.REPLAY_BUFFER.sample(self.BATCH_SIZE, prio=self.priority)
+                    train_bellman(self.onlineNet, self.targetNet, BATCH, self.GAMMA)
+                    write_csv(Q_target_log, (self.targetNet.infer(current_state))[0])
+                    write_csv(Q_online_log, (self.onlineNet.infer(current_state))[0])
+                    write_csv(Rt_log, [reward])
+                    write_csv(Loss, [self.onlineNet.loss])
+                    self.loss_plot += [self.onlineNet.loss]
+                    self.reward_plot += [eps_rew]
 
-            current_state = next_state
+                current_state = next_state
 
-            if (STEP + 1) % self.UPDATE_TARGET_STEPS == 0:
-                if self.priority: self.REPLAY_BUFFER.prio_update(self.onlineNet, self.targetNet, GAMMA=self.GAMMA,
-                                                                 alpha=self.alpha, epsilon=self.epsilon)
-                if log: print('update: ', len(self.reward_plot), ' episodes ---- 2 eps average reward: ',
-                              np.array(self.reward_plot)[-2:].mean())
-                update_target(self.onlineNet, self.targetNet, duel=False)
+                if (STEP + 1) % self.UPDATE_TARGET_STEPS == 0:
+                    if self.priority: self.REPLAY_BUFFER.prio_update(self.onlineNet, self.targetNet, GAMMA=self.GAMMA,
+                                                                     alpha=self.alpha, epsilon=self.epsilon)
+                    if log: print('update: ', len(self.reward_plot), ' episodes ---- 2 eps average reward: ',
+                                  np.array(self.reward_plot)[-2:].mean())
+                    update_target(self.onlineNet, self.targetNet, duel=False)
 
-            # self.log_weight()
-            if STEP % 10 == 0: self.save_model()
+                # self.log_weight()
+                if STEP % 10 == 0: self.save_model()
 
 
 
