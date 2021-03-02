@@ -58,7 +58,8 @@ INTERSECTION_1 = {
     'prePOZ': {
         'busExitDetector': 1171393,
         'busCallDetector': 1171405,
-    }
+    },
+    'maxTT': 400
 
 }
 INTERSECTION_2 = {
@@ -75,7 +76,8 @@ INTERSECTION_2 = {
     'prePOZ': {
         'busExitDetector': 1171391,
         'busCallDetector': 1171407,
-    }
+    },
+    'maxTT': 200
 }
 
 

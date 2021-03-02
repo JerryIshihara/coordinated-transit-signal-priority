@@ -7,7 +7,6 @@ from config import *
 from corridor import *
 
 
-
 def AAPILoad():
     """
     Create Intersection objects. Called when the module is loaded by Aimsum Next
@@ -70,6 +69,9 @@ def AAPIFinish():
     Called when Aimsun Next finishes the simulation and can be used to terminate the module operations, 
     write summary information, close files, etc.
     """
+    global corridor
+    # write last reward to indicate that the replication is done
+    corridor.write_last_reward()
     return 0
 
 
