@@ -10,7 +10,6 @@ from config import *
 from intersection import *
 from prePOZ import *
 
-
 class Corridor:
 
     """Summary
@@ -45,19 +44,34 @@ class Corridor:
 
         self.joint_state = ([], uuid4().int) # ([joint state], flag)
         self.action_flag = 0
-
-    def _write_state_reward(self, reward):
+        self.counter = 0
+    
+    def write_last_reward(self):
+        r_1 = self.intx_1.get_reward()
+        r_2 = self.intx_2.get_reward()
+        self.counter = 0
+        # cumulative reward between time step t and t + 1
+        total_reward = r_1 + r_2
+        self._write_state_reward(total_reward, last_reward=True)
+        return
+    
+    def _write_state_reward(self, reward, last_reward=False):
         """Send joint state and reward to DQN
         """
+        uuid = uuid4().int
+        if self.counter == 0 or last_reward:
+            uuid = 0
+            self.counter += 1
+            # first reward is 0
         is_reward_written = False
         while not is_reward_written:
             try:
                 f = open(REWARD, "w+")
-                f.write("{} {}".format(reward, uuid4().int))
+                f.write("{} {}".format(reward, uuid))
                 f.close()
                 is_reward_written = True
                 with open(REWARD_CSV, "a+") as out:  # Log key parameters
-                    out.write("{},{}\n".format(reward, uuid4().int))
+                    out.write("{},{}\n".format(reward, uuid))
             except:
                 continue
         
@@ -72,6 +86,8 @@ class Corridor:
                 is_state_written = True
             except:
                 continue
+
+        
         
     def _read_action(self):
         """Read and return the actions from DQN

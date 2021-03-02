@@ -82,9 +82,11 @@ class AimsunEnv(Environment):
                 if new_flag != self.reward_flag:
                     is_read = True
                     self.reward_flag = new_flag
+                    if new_flag == 0:
+                        return reward, True
             except:
                 continue
-        return reward
+        return reward, False
 
     def _write_action(self, index):
         """write the newly received action to Aimsun
@@ -147,11 +149,11 @@ class AimsunEnv(Environment):
         """
         self._write_action(action_index)
         S_ = self._get_state()
-        reward = self._receive_and_log_reward()
+        reward, done = self._receive_and_log_reward()
         # print log
         if self.num_step < 50 or self.num_step % 1000 == 0:
             print("="*20 + " Step: {} ".format(self.num_step) + "="*20)
-        return S_, reward, False
+        return S_, reward, done
 
     def reset(self):
         """Reset the Aimsun environment and receive the first state

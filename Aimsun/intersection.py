@@ -88,7 +88,7 @@ class Intersection:
         # number of bus in prePOZ will produce error if a bus enters POZ without being recorded in prePOZ (aka checkout from last intersection)
         self.prePOZ_numbus = None
         self.prePOZ_bus_checkout_time_dict = None  # this dict is only valid if there is a detector/intersection before this intersection
-
+        self.reset_intersection = 0
         self.state = [0, 0, 0, 0, 0, 0]
 
     def empty_intersection(self):
@@ -105,25 +105,6 @@ class Intersection:
 
         self.state = [0, 0, 0, 0, 0, 0]
 
-    '''
-    def set_downstream_intersection(self, intersection):
-        """
-        set the intersection after the current intersection
-        (so checked out buses are written to next intersection's prePOZ)
-
-        Parameters
-        ----------
-        intersection : Intersection
-            Intersection object for the intersection immediately after the current intersection
-
-        """
-        self.downstream_intersection = intersection
-        # initialize the prePOZ for next intersection
-        # dict key is bus id
-        self.downstream_intersection.prePOZ_bus_checkout_time_dict = {}
-        self.downstream_intersection.prePOZ_numbus = 0
-        return
-    '''
 
     def _find_first_checkout_time_in_prePOZ(self):
         """
@@ -226,7 +207,7 @@ class Intersection:
             print("int {} has no assigned extension, the phase of interest is {} sec, extending {} sec extension".format(self.CONFIG['intersection'], poi_duration, action))
 
 
-        if poi_duration != green_duration - self.extended:
+        if poi_duration != green_duration + self.extended:
             print("\n\n ERROR: phase duration already changed from {} to {} and self.extended value is {}\n\n".format(green_duration, poi_duration, self.extended))
 
         phasetime = time - ECIGetStartingTimePhase(intersection)
@@ -365,7 +346,9 @@ class Intersection:
         d_in = abs(bus_object.check_in_headway - self.CONFIG['target_headway'])
         improve = d_in - d_out
         reward = 1 * improve - 0 * travelTime
-        reward = (400 - travelTime)/40
+        max_TT = self.CONFIG['maxTT']
+        # reward = sigmoid((max_TT - travelTime)/max_TT-0.5)
+        reward = (max_TT - travelTime)/max_TT-0.5
         return reward
         
     def _get_toNearGreenPhase(self, currentPhase, phasetime, extended):
@@ -439,14 +422,16 @@ class Intersection:
         # find phase before and after phase of interest
         phase_after_phase_of_interest = util.get_phase_number(total_phases, phase_of_interest + 1)
         # green phase ended and the buses that are still in POZ becomes cycled buses
-        if currentPhase == phase_after_phase_of_interest and phasetime == 0:
+        if currentPhase == phase_after_phase_of_interest and int(phasetime) <=1:
             self.cycled_bus = self.numbus
+            self.reset_intersection = 1
             if self.extendedalready:
                 print("phase of interest passed, try to reset extension")
             self.extendedalready = 0 # clear the extended already flag
-        if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
+        if currentPhase != phase_of_interest and self.reset_intersection==1:
             if self.extended!=0:
-                print("time extension reset")
+                print("time extension reset at time {}".format(time))
+            self.reset_intersection = 0
             self.extended = 0
             ECIChangeTimingPhase(
                 intersection, 
@@ -551,7 +536,13 @@ class Intersection:
             new_state = [last_available_checkout_time, last_check_in_time, check_in_hdy, self.numbus, self.allnumvel,
                          tToNearGreenPhase]
         else:
-            new_state = [0, 0, 0, 0, 0, 0]
+            if self.last_checkout_bus:
+                last_available_checkout_time = self.last_checkout_bus.check_out_time
+                check_in_hdy = self.last_checkout_bus.check_in_headway
+                last_check_in_time = self.last_checkout_bus.check_in_time
+                new_state = [last_available_checkout_time, last_check_in_time, check_in_hdy, 0, self.allnumvel,  tToNearGreenPhase]
+            else:
+                new_state = [0, 0, 0, 0, self.allnumvel, tToNearGreenPhase]
 
         self.state = new_state
         return
@@ -588,14 +579,16 @@ class Intersection:
         phase_before_phase_of_interest = get_phase_number(
             total_phases, phase_of_interest - 1)
         # green phase ended and the buses that are still in POZ becomes cycled buses
-        if currentPhase == phase_after_phase_of_interest and phasetime == 0:
+        if currentPhase == phase_after_phase_of_interest and int(phasetime) <=1:
             self.cycled_bus = self.numbus
+            self.reset_intersection = 1
             if self.extendedalready:
                 print("phase of interest passed, try to reset extension")
             self.extendedalready = 0 # clear the extended already flag
-        if currentPhase != phase_of_interest and (self.numbus - self.cycled_bus == 0):
+        if currentPhase != phase_of_interest and self.reset_intersection==1:
             if self.extended!=0:
-                print("time extension reset")
+                print("time extension reset at time {}".format(time))
+            self.reset_intersection = 0
             self.extended = 0
             ECIChangeTimingPhase(
                 intersection, 
