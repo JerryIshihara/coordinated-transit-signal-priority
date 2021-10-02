@@ -646,3 +646,5 @@ class Intersection:
         return
 
 
+    def _get_time_spend(self):
+        return 1
